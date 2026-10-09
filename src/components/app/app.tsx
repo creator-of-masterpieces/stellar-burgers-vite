@@ -1,7 +1,7 @@
 import { AppHeader } from '@components';
-import { ConstructorPage } from '@pages';
 import { Preloader } from '@ui';
-import { Routes, Route } from 'react-router-dom';
+
+import { RouteComponent } from '@components/routes/routes.tsx';
 
 import type { AppContentProps } from './type';
 import type { TIngredient } from '@utils-types';
@@ -11,7 +11,21 @@ import '../../index.css';
 import styles from './app.module.css';
 
 const App = (): React.JSX.Element => {
-  const ingredients: TIngredient[] = [];
+  const ingredients: TIngredient[] = [
+    {
+      _id: '1',
+      name: 'name',
+      type: 'type',
+      proteins: 1,
+      fat: 1,
+      carbohydrates: 1,
+      calories: 1,
+      price: 1,
+      image: 'image_src',
+      image_large: 'image_src',
+      image_mobile: 'image_src',
+    },
+  ];
   const isIngredientsLoading = false;
   const ingredientsError = null;
 
@@ -56,14 +70,4 @@ const AppContent = ({
   }
 
   return <RouteComponent />;
-};
-
-const RouteComponent = (): React.JSX.Element => {
-  return (
-    <>
-      <Routes>
-        <Route path="/" element={<ConstructorPage />} />
-      </Routes>
-    </>
-  );
 };
