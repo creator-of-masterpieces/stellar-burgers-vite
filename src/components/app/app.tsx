@@ -1,5 +1,13 @@
+import {
+  selectError,
+  selectIngredients,
+  selectIsLoading,
+} from '@/services/slices/ingredients/ingredientsSelectors';
+import { fetchIngredients } from '@/services/slices/ingredients/ingredientsSlice';
+import { useDispatch, useSelector } from '@/services/store';
 import { AppHeader } from '@components';
 import { Preloader } from '@ui';
+import { useEffect } from 'react';
 
 import { RouteComponent } from '@components/routes/routes.tsx';
 
@@ -11,23 +19,14 @@ import '../../index.css';
 import styles from './app.module.css';
 
 const App = (): React.JSX.Element => {
-  const ingredients: TIngredient[] = [
-    {
-      _id: '1',
-      name: 'name',
-      type: 'type',
-      proteins: 1,
-      fat: 1,
-      carbohydrates: 1,
-      calories: 1,
-      price: 1,
-      image: 'image_src',
-      image_large: 'image_src',
-      image_mobile: 'image_src',
-    },
-  ];
-  const isIngredientsLoading = false;
-  const ingredientsError = null;
+  const dispatch = useDispatch();
+  const ingredients: TIngredient[] = useSelector(selectIngredients);
+  const isIngredientsLoading = useSelector(selectIsLoading);
+  const ingredientsError = useSelector(selectError);
+
+  useEffect(() => {
+    void dispatch(fetchIngredients());
+  }, [dispatch]);
 
   return (
     <div className={styles.app}>
@@ -57,8 +56,7 @@ const AppContent = ({
   if (error) {
     return (
       <p className={`${styles.message} text text_type_main-medium`}>
-        Не удалось загрузить ингредиенты
-        {error.message ? `: ${error.message}` : '.'}
+        Не удалось загрузить ингредиенты. Попробуйте обновить страницу.
       </p>
     );
   }

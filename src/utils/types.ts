@@ -51,3 +51,5 @@ export type TFeedState = {
   isLoading: boolean;
   error: unknown;
 };
+
+export type FetchStatus = 'idle' | 'pending' | 'succeeded' | 'rejected';

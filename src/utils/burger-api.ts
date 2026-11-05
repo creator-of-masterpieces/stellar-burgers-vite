@@ -19,9 +19,9 @@ type TServerResponse<T = unknown> = {
 const toApiError = (payload: unknown): Error => {
   const message =
     typeof payload === 'object' &&
-    payload !== null &&
-    'message' in payload &&
-    typeof (payload as { message: unknown }).message === 'string'
+      payload !== null &&
+      'message' in payload &&
+      typeof (payload as { message: unknown }).message === 'string'
       ? (payload as { message: string }).message
       : 'Не удалось выполнить запрос к серверу';
 
