@@ -1,4 +1,3 @@
-import { Navigate, Route, Routes , Outlet} from 'react-router-dom';
 import {
   ConstructorPage,
   Feed,
@@ -10,71 +9,107 @@ import {
   Register,
   ResetPassword,
 } from '@pages';
+import {
+  Navigate,
+  Route,
+  Routes,
+  Outlet,
+  useNavigate,
+  useLocation,
+  type Location,
+} from 'react-router-dom';
+
+import { IngredientDetails } from '@components/ingredient-details';
 import { Modal } from '@components/modal';
 import { OrderInfo } from '@components/order-info';
-import { IngredientDetails } from '@components/ingredient-details';
+
+type ModalLocationState = {
+  background?: Location;
+};
 
 export const RouteComponent = (): React.JSX.Element => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const modalState = location.state as ModalLocationState | null;
+
+  const handleClose = (): void => {
+    if (modalState?.background) {
+      void navigate(-1);
+    } else {
+      void navigate('/', { replace: true });
+    }
+  };
   return (
-    <Routes>
-      <Route path="/" element={<ConstructorPage />} />
-      <Route path="/feed" element={<Feed />} />
-      <Route element={<GuestRout />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-      </Route>
-      <Route element={<ProtectedRout />}>
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/orders" element={<ProfileOrders />} />
-      </Route>
-      <Route
-        path="/feed/:number"
-        element={
-          <Modal title="Информация о заказе" onClose={() => undefined}>
-            <OrderInfo />
-          </Modal>
-        }
-      />
-      <Route
-        path="/ingredients/:id"
-        element={
-          <Modal title="Информация о ингредиенте" onClose={() => undefined}>
-            <IngredientDetails />
-          </Modal>
-        }
-      />
-      <Route element={<ProtectedRout />}>
+    <>
+      <Routes location={modalState?.background ?? location}>
+        <Route path="/" element={<ConstructorPage />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route element={<GuestRout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+        </Route>
+        <Route element={<ProtectedRout />}>
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/orders" element={<ProfileOrders />} />
+        </Route>
         <Route
-          path="/profile/orders/:number"
+          path="/feed/:number"
           element={
-            <Modal title="Информация о заказе авторизованного пользователя" onClose={() => undefined}>
+            <Modal title="Информация о заказе" onClose={() => undefined}>
               <OrderInfo />
             </Modal>
           }
         />
-      </Route>
-      <Route path="*" element={<NotFound404 />} />
-    </Routes>
+
+        <Route element={<ProtectedRout />}>
+          <Route
+            path="/profile/orders/:number"
+            element={
+              <Modal
+                title="Информация о заказе авторизованного пользователя"
+                onClose={() => undefined}
+              >
+                <OrderInfo />
+              </Modal>
+            }
+          />
+        </Route>
+        <Route path="/ingredients/:id" element={<IngredientDetails />} />
+        <Route path="*" element={<NotFound404 />} />
+      </Routes>
+
+      {modalState?.background && (
+        <Routes>
+          <Route
+            path="/ingredients/:id"
+            element={
+              <Modal title="Информация о ингредиенте" onClose={handleClose}>
+                <IngredientDetails />
+              </Modal>
+            }
+          />
+        </Routes>
+      )}
+    </>
   );
 };
 
-const GuestRout = () => {
+const GuestRout = (): React.JSX.Element => {
   const isAuth = false;
   if (isAuth) {
     return <Navigate to={'/'} replace />;
-  }
-  else {
-    return <Outlet/>
+  } else {
+    return <Outlet />;
   }
 };
 
-const ProtectedRout = () => {
+const ProtectedRout = (): React.JSX.Element => {
   const isAuth = true;
   if (!isAuth) {
     return <Navigate to={'/'} />;
   } else {
     return <Outlet />;
   }
-}
+};

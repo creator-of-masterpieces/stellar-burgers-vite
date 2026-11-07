@@ -33,7 +33,6 @@ export const BurgerIngredients = (): React.JSX.Element => {
     } else if (inViewFilling) {
       setCurrentTab('main');
     }
-    console.log(ingredients);
   }, [inViewBuns, inViewFilling, inViewSauces]);
 
   const onTabClick = (tab: string): void => {
