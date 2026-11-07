@@ -1,3 +1,5 @@
+import type { SerializedError } from '@reduxjs/toolkit';
+
 export type TIngredient = {
   _id: string;
   name: string;
@@ -53,3 +55,4 @@ export type TFeedState = {
 };
 
 export type FetchStatus = 'idle' | 'pending' | 'succeeded' | 'rejected';
+export type TRequestError = SerializedError | null;

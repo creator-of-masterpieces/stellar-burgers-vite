@@ -1,12 +1,12 @@
 import { getIngredientsApi } from '@/utils/burger-api';
-import { createAsyncThunk, createSlice, type SerializedError } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
-import type { FetchStatus, TIngredient } from '@/utils/types';
+import type { FetchStatus, TIngredient, TRequestError } from '@/utils/types';
 
 type IngredientsState = {
   status: FetchStatus;
   ingredients: TIngredient[];
-  error: SerializedError | null;
+  error: TRequestError;
 };
 
 const initialState: IngredientsState = {
