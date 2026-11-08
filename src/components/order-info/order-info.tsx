@@ -1,21 +1,29 @@
+import { NotFound404 } from '@/pages';
+import { selectIngredients } from '@/services/slices/ingredients/ingredientsSelectors';
+import { fetchOrderData } from '@/services/slices/orderDetails/orderDetailsSlice';
+import { useDispatch, useSelector } from '@/services/store';
 import { Preloader, OrderInfoUI } from '@ui';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 
 import type { TIngredient } from '@utils-types';
 
-export const OrderInfo = (): React.JSX.Element => {
-  /** TODO: взять переменные orderData и ingredients из стора */
-  const orderData = {
-    createdAt: '',
-    ingredients: [],
-    _id: '',
-    status: '',
-    name: '',
-    updatedAt: 'string',
-    number: 0,
-  };
+type OrderInfoProps = {
+  showNumber?: boolean;
+};
+export const OrderInfo = ({ showNumber = false }: OrderInfoProps): React.JSX.Element => {
+  const dispatch = useDispatch();
+  const requestStatus = useSelector((state) => state.orderDetails.status);
+  const orderNumber = Number(useParams<{ number: string }>().number);
+  const isOrderNumberValid = Number.isSafeInteger(orderNumber) && orderNumber > 0;
+  const ingredients: TIngredient[] = useSelector(selectIngredients);
 
-  const ingredients: TIngredient[] = [];
+  const orderData = useSelector((state) => state.orderDetails.order);
+
+  useEffect(() => {
+    if (!isOrderNumberValid) return;
+    void dispatch(fetchOrderData(orderNumber));
+  }, [dispatch, orderNumber, isOrderNumberValid]);
 
   /**
    * использование useMemo не обязательно
@@ -60,9 +68,21 @@ export const OrderInfo = (): React.JSX.Element => {
     };
   }, [orderData, ingredients]);
 
+  if (!isOrderNumberValid) {
+    return <NotFound404 />;
+  }
+
+  if (requestStatus === 'rejected') {
+    return (
+      <p className="text text_type_main-default text_color_inactive p-6">
+        Не удалось загрузить заказ. Попробуйте открыть его ещё раз.
+      </p>
+    );
+  }
+
   if (!orderInfo) {
     return <Preloader />;
   }
 
-  return <OrderInfoUI orderInfo={orderInfo} />;
+  return <OrderInfoUI orderInfo={orderInfo} showNumber={showNumber} />;
 };

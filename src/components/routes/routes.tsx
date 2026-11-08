@@ -17,6 +17,7 @@ import {
   useNavigate,
   useLocation,
   type Location,
+  useMatch,
 } from 'react-router-dom';
 
 import { IngredientDetails } from '@components/ingredient-details';
@@ -30,6 +31,8 @@ type ModalLocationState = {
 export const RouteComponent = (): React.JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
+  const orderMatch = useMatch('/feed/:number');
+  const orderNumber = orderMatch?.params.number;
   const modalState = location.state as ModalLocationState | null;
 
   const handleClose = (): void => {
@@ -44,24 +47,20 @@ export const RouteComponent = (): React.JSX.Element => {
       <Routes location={modalState?.background ?? location}>
         <Route path="/" element={<ConstructorPage />} />
         <Route path="/feed" element={<Feed />} />
+
         <Route element={<GuestRout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
+
         <Route element={<ProtectedRout />}>
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/orders" element={<ProfileOrders />} />
         </Route>
-        <Route
-          path="/feed/:number"
-          element={
-            <Modal title="Информация о заказе" onClose={() => undefined}>
-              <OrderInfo />
-            </Modal>
-          }
-        />
+
+        <Route path="/feed/:number" element={<OrderInfo showNumber />} />
 
         <Route element={<ProtectedRout />}>
           <Route
@@ -87,6 +86,21 @@ export const RouteComponent = (): React.JSX.Element => {
             element={
               <Modal title="Информация о ингредиенте" onClose={handleClose}>
                 <IngredientDetails />
+              </Modal>
+            }
+          />
+          <Route
+            path="/feed/:number"
+            element={
+              <Modal
+                title={
+                  orderNumber
+                    ? `#${orderNumber.padStart(6, '0')}`
+                    : `Информация о заказе`
+                }
+                onClose={handleClose}
+              >
+                <OrderInfo />
               </Modal>
             }
           />
