@@ -120,7 +120,7 @@ const GuestRout = (): React.JSX.Element => {
 };
 
 const ProtectedRout = (): React.JSX.Element => {
-  const isAuth = true;
+  const isAuth = false;
   if (!isAuth) {
     return <Navigate to={'/'} />;
   } else {
