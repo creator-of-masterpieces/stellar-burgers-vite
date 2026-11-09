@@ -1,7 +1,4 @@
-import {
-  resetConstructorState,
-  submitOrder,
-} from '@/services/slices/constructor/constructorSlice';
+import { resetOrder, submitOrder } from '@/services/slices/constructor/constructorSlice';
 import {
   selectIsLoading,
   selectOrder,
@@ -42,7 +39,7 @@ export const BurgerConstructor = (): React.JSX.Element | null => {
 
   const closeOrderModal = (): void => {
     if (orderRequest) return;
-    dispatch(resetConstructorState());
+    dispatch(resetOrder());
   };
 
   const price = useMemo(

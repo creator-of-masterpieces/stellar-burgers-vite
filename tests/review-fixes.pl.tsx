@@ -51,6 +51,83 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test('feed keeps cards and totals during refresh and failure, then retries successfully', async ({
+  page,
+}) => {
+  let fail = false;
+  let finishRefresh!: () => void;
+  const refresh = new Promise<void>((resolve) => {
+    finishRefresh = resolve;
+  });
+  await page.route('**/orders/all', async (route) => {
+    if (fail) {
+      await refresh;
+      await route.fulfill({ status: 500, json: { success: false } });
+      return;
+    }
+    await route.fulfill({
+      json: { success: true, orders: [order], total: 12345, totalToday: 42 },
+    });
+  });
+  try {
+    await page.goto('/feed');
+    const card = page.locator('main a[href="/feed/201"]');
+    const button = page.getByRole('button', { name: 'Обновить', exact: true });
+    const total = page.getByText('12345', { exact: true });
+    await expect(card).toBeVisible();
+    await expect(total).toBeVisible();
+    fail = true;
+    await button.click();
+    await expect(page.getByRole('status')).toContainText('Обновляем ленту заказов');
+    await expect(button).toBeDisabled();
+    await expect(card).toBeVisible();
+    await expect(total).toBeVisible();
+    finishRefresh();
+    await expect(page.getByRole('alert')).toContainText('Не удалось загрузить ленту');
+    await expect(card).toBeVisible();
+    await expect(total).toBeVisible();
+    await expect(button).toBeEnabled();
+    fail = false;
+    await button.click();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.getByRole('status')).toHaveCount(0);
+    await expect(card).toBeVisible();
+  } finally {
+    finishRefresh();
+  }
+});
+
+test('feed allows retry after initial failure and refresh after an empty response', async ({
+  page,
+}) => {
+  let fail = true;
+  let empty = true;
+  await page.route('**/orders/all', (route) =>
+    fail
+      ? route.fulfill({ status: 500, json: { success: false } })
+      : route.fulfill({
+          json: {
+            success: true,
+            orders: empty ? [] : [order],
+            total: empty ? 0 : 1,
+            totalToday: empty ? 0 : 1,
+          },
+        })
+  );
+  await page.goto('/feed');
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить ленту');
+  const button = page.getByRole('button', { name: 'Обновить', exact: true });
+  fail = false;
+  await button.click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('Заказов пока нет.', { exact: true })).toBeVisible();
+  await expect(button).toBeEnabled();
+  empty = false;
+  await button.click();
+  await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
+  await expect(page.getByText('Заказов пока нет.', { exact: true })).toHaveCount(0);
+});
+
 test('StrictMode loads the catalog once and navigation reuses it', async ({ page }) => {
   let requests = 0;
   let finishRequest!: () => void;

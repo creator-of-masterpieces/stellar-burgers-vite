@@ -67,8 +67,10 @@ export const constructorSlice = createSlice({
       state.bun = null;
       state.ingredients = [];
     },
-    resetConstructorState() {
-      return initialState;
+    resetOrder(state) {
+      state.order = null;
+      state.status = 'idle';
+      state.error = null;
     },
     moveIngredient(state, action: PayloadAction<MoveIngredientPayload>) {
       const { fromIndex, toIndex } = action.payload;
@@ -110,6 +112,6 @@ export const {
   removeIngredient,
   moveIngredient,
   clearConstructor,
-  resetConstructorState,
+  resetOrder,
 } = constructorSlice.actions;
 export const constructorReducer = constructorSlice.reducer;

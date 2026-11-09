@@ -5,6 +5,8 @@ import {
   constructorReducer,
   moveIngredient,
   removeIngredient,
+  resetOrder,
+  submitOrder,
 } from './slices/constructor/constructorSlice';
 import {
   selectIngredientCounters,
@@ -46,6 +48,26 @@ const order: TOrder = {
   createdAt: '',
   updatedAt: '',
 };
+
+test('successful order clears the burger; closing its modal preserves newly added ingredients', () => {
+  let state = constructorReducer(undefined, addIngredient(bun));
+  state = constructorReducer(state, addIngredient(filling));
+  state = constructorReducer(
+    state,
+    submitOrder.fulfilled(order, 'request', ['bun', 'filling', 'bun'])
+  );
+  expect(state.bun).toBeNull();
+  expect(state.ingredients).toEqual([]);
+  expect(state.order).toEqual(order);
+  state = constructorReducer(state, addIngredient(bun));
+  state = constructorReducer(state, addIngredient(filling));
+  const nextBurger = { bun: state.bun, ingredients: state.ingredients };
+  state = constructorReducer(state, resetOrder());
+  expect(state.order).toBeNull();
+  expect(state.status).toBe('idle');
+  expect(state.error).toBeNull();
+  expect({ bun: state.bun, ingredients: state.ingredients }).toEqual(nextBurger);
+});
 
 test('catalog skips requests while loading and after success', async () => {
   const store = configureStore({ reducer: rootReducer });
