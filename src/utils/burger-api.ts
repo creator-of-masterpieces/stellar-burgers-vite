@@ -19,9 +19,9 @@ type TServerResponse<T = unknown> = {
 const toApiError = (payload: unknown): Error => {
   const message =
     typeof payload === 'object' &&
-      payload !== null &&
-      'message' in payload &&
-      typeof (payload as { message: unknown }).message === 'string'
+    payload !== null &&
+    'message' in payload &&
+    typeof (payload as { message: unknown }).message === 'string'
       ? (payload as { message: string }).message
       : 'Не удалось выполнить запрос к серверу';
 
@@ -230,6 +230,9 @@ export const getUserApi = (): Promise<TUserResponse> =>
     headers: {
       authorization: getCookie('accessToken'),
     } as HeadersInit,
+  }).then((data) => {
+    if (data?.success) return data;
+    return Promise.reject(toApiError(data));
   });
 
 export const updateUserApi = (user: Partial<TRegisterData>): Promise<TUserResponse> =>
@@ -240,15 +243,23 @@ export const updateUserApi = (user: Partial<TRegisterData>): Promise<TUserRespon
       authorization: getCookie('accessToken'),
     } as HeadersInit,
     body: JSON.stringify(user),
+  }).then((data) => {
+    if (data?.success) return data;
+    return Promise.reject(toApiError(data));
   });
 
-export const logoutApi = (): Promise<TServerResponse> =>
+export const logoutApi = (token: string): Promise<TServerResponse> =>
   fetch(`${URL}/auth/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
     },
     body: JSON.stringify({
-      token: localStorage.getItem('refreshToken'),
+      token,
     }),
-  }).then((res) => checkResponse<TServerResponse>(res));
+  })
+    .then((res) => checkResponse<TServerResponse>(res))
+    .then((data) => {
+      if (data?.success) return data;
+      return Promise.reject(toApiError(data));
+    });

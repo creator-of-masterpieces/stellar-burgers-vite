@@ -4,6 +4,7 @@ import {
   selectIsLoading,
 } from '@/services/slices/ingredients/ingredientsSelectors';
 import { fetchIngredients } from '@/services/slices/ingredients/ingredientsSlice';
+import { checkUser } from '@/services/slices/user/userSlice';
 import { useDispatch, useSelector } from '@/services/store';
 import { AppHeader } from '@components';
 import { Preloader } from '@ui';
@@ -26,6 +27,7 @@ const App = (): React.JSX.Element => {
 
   useEffect(() => {
     void dispatch(fetchIngredients());
+    void dispatch(checkUser());
   }, [dispatch]);
 
   return (

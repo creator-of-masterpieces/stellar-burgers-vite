@@ -1,3 +1,5 @@
+import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
+import { useSelector } from '@/services/store';
 import {
   ConstructorPage,
   Feed,
@@ -9,6 +11,7 @@ import {
   Register,
   ResetPassword,
 } from '@pages';
+import { Preloader } from '@ui';
 import {
   Navigate,
   Route,
@@ -32,7 +35,8 @@ export const RouteComponent = (): React.JSX.Element => {
   const location = useLocation();
   const navigate = useNavigate();
   const orderMatch = useMatch('/feed/:number');
-  const orderNumber = orderMatch?.params.number;
+  const profileOrderMatch = useMatch('/profile/orders/:number');
+  const orderNumber = orderMatch?.params.number ?? profileOrderMatch?.params.number;
   const modalState = location.state as ModalLocationState | null;
 
   const handleClose = (): void => {
@@ -63,17 +67,7 @@ export const RouteComponent = (): React.JSX.Element => {
         <Route path="/feed/:number" element={<OrderInfo showNumber />} />
 
         <Route element={<ProtectedRout />}>
-          <Route
-            path="/profile/orders/:number"
-            element={
-              <Modal
-                title="Информация о заказе авторизованного пользователя"
-                onClose={() => undefined}
-              >
-                <OrderInfo />
-              </Modal>
-            }
-          />
+          <Route path="/profile/orders/:number" element={<OrderInfo showNumber />} />
         </Route>
         <Route path="/ingredients/:id" element={<IngredientDetails />} />
         <Route path="*" element={<NotFound404 />} />
@@ -104,6 +98,23 @@ export const RouteComponent = (): React.JSX.Element => {
               </Modal>
             }
           />
+          <Route element={<ProtectedRout />}>
+            <Route
+              path="/profile/orders/:number"
+              element={
+                <Modal
+                  title={
+                    orderNumber
+                      ? `#${orderNumber.padStart(6, '0')}`
+                      : 'Информация о заказе'
+                  }
+                  onClose={handleClose}
+                >
+                  <OrderInfo />
+                </Modal>
+              }
+            />
+          </Route>
         </Routes>
       )}
     </>
@@ -111,19 +122,20 @@ export const RouteComponent = (): React.JSX.Element => {
 };
 
 const GuestRout = (): React.JSX.Element => {
-  const isAuth = false;
-  if (isAuth) {
-    return <Navigate to={'/'} replace />;
-  } else {
-    return <Outlet />;
-  }
+  const user = useSelector(selectUser);
+  const isAuthChecked = useSelector(selectIsAuthChecked);
+  const location = useLocation();
+  const state = location.state as { from?: Location } | null;
+
+  if (!isAuthChecked) return <Preloader />;
+  return user ? <Navigate to={state?.from ?? '/'} replace /> : <Outlet />;
 };
 
 const ProtectedRout = (): React.JSX.Element => {
-  const isAuth = false;
-  if (!isAuth) {
-    return <Navigate to={'/'} />;
-  } else {
-    return <Outlet />;
-  }
+  const user = useSelector(selectUser);
+  const isAuthChecked = useSelector(selectIsAuthChecked);
+  const location = useLocation();
+
+  if (!isAuthChecked) return <Preloader />;
+  return user ? <Outlet /> : <Navigate to="/login" state={{ from: location }} replace />;
 };

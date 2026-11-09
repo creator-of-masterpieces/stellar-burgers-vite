@@ -1,3 +1,4 @@
+import { PASSWORD_MIN_LENGTH } from '@/utils/validation';
 import {
   Input,
   Button,
@@ -16,18 +17,22 @@ export const LoginUI = ({
   handleSubmit,
   password,
   setPassword,
+  isLoading = false,
 }: LoginUIProps): React.JSX.Element => (
-  /*
-    Отображение ошибок и валидация форм в "можно лучше"
-  */
   <main className={styles.container}>
     <div className={`pt-6 ${styles.wrapCenter}`}>
       <h3 className="pb-6 text text_type_main-medium">Вход</h3>
-      <form className={`pb-15 ${styles.form}`} name="login" onSubmit={handleSubmit}>
+      <form
+        className={`pb-15 ${styles.form}`}
+        name="login"
+        onSubmit={handleSubmit}
+        onInvalid={(event) => event.preventDefault()}
+      >
         <>
           <div className="pb-6">
             <Input
               type="email"
+              required
               placeholder="E-mail"
               onChange={(e) => setEmail(e.target.value)}
               value={email}
@@ -42,11 +47,14 @@ export const LoginUI = ({
               onChange={(e) => setPassword(e.target.value)}
               value={password}
               name="password"
+              required
+              minLength={PASSWORD_MIN_LENGTH}
+              errorText={`Пароль должен содержать не менее ${PASSWORD_MIN_LENGTH} символов`}
             />
           </div>
           <div className={`pb-6 ${styles.button}`}>
-            <Button type="primary" size="medium" htmlType="submit">
-              Войти
+            <Button type="primary" size="medium" htmlType="submit" disabled={isLoading}>
+              {isLoading ? 'Входим…' : 'Войти'}
             </Button>
           </div>
           {errorText && (

@@ -1,3 +1,4 @@
+import { PASSWORD_MIN_LENGTH } from '@/utils/validation';
 import {
   Input,
   Button,
@@ -18,18 +19,22 @@ export const RegisterUI = ({
   setPassword,
   userName,
   setUserName,
+  isLoading = false,
 }: RegisterUIProps): React.JSX.Element => (
-  /*
-    Отображение ошибок и валидация форм в "можно лучше"
-  */
   <main className={styles.container}>
     <div className={`pt-6 ${styles.wrapCenter}`}>
       <h3 className="pb-6 text text_type_main-medium">Регистрация</h3>
-      <form className={`pb-15 ${styles.form}`} name="register" onSubmit={handleSubmit}>
+      <form
+        className={`pb-15 ${styles.form}`}
+        name="register"
+        onSubmit={handleSubmit}
+        onInvalid={(event) => event.preventDefault()}
+      >
         <>
           <div className="pb-6">
             <Input
               type="text"
+              required
               placeholder="Имя"
               onChange={(e) => setUserName(e.target.value)}
               value={userName}
@@ -42,6 +47,7 @@ export const RegisterUI = ({
           <div className="pb-6">
             <Input
               type="email"
+              required
               placeholder="E-mail"
               onChange={(e) => setEmail(e.target.value)}
               value={email}
@@ -56,11 +62,14 @@ export const RegisterUI = ({
               onChange={(e) => setPassword(e.target.value)}
               value={password}
               name="password"
+              required
+              minLength={PASSWORD_MIN_LENGTH}
+              errorText={`Пароль должен содержать не менее ${PASSWORD_MIN_LENGTH} символов`}
             />
           </div>
           <div className={`pb-6 ${styles.button}`}>
-            <Button type="primary" size="medium" htmlType="submit">
-              Зарегистрироваться
+            <Button type="primary" size="medium" htmlType="submit" disabled={isLoading}>
+              {isLoading ? 'Регистрируем…' : 'Зарегистрироваться'}
             </Button>
           </div>
           {errorText && (

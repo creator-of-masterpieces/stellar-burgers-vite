@@ -1,10 +1,19 @@
+import { fetchProfileOrders } from '@/services/slices/profileOrders/profileOrdersSlice';
+import { useDispatch, useSelector } from '@/services/store';
 import { ProfileOrdersUI } from '@ui-pages';
-
-import type { TOrder } from '@utils-types';
+import { useEffect } from 'react';
 
 export const ProfileOrders = (): React.JSX.Element => {
-  /** TODO: взять переменную из стора */
-  const orders: TOrder[] = [];
+  const dispatch = useDispatch();
+  const { orders, status } = useSelector((state) => state.profileOrders);
 
-  return <ProfileOrdersUI orders={orders} />;
+  const handleRetry = (): void => {
+    void dispatch(fetchProfileOrders());
+  };
+
+  useEffect(() => {
+    void dispatch(fetchProfileOrders());
+  }, [dispatch]);
+
+  return <ProfileOrdersUI orders={orders} status={status} onRetry={handleRetry} />;
 };

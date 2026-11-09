@@ -6,14 +6,20 @@ import {
   selectIsLoading,
   selectOrder,
 } from '@/services/slices/constructor/counstructorSelectors';
+import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
 import { useDispatch, useSelector } from '@/services/store';
 import { BurgerConstructorUI } from '@ui';
 import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import type { TConstructorIngredient, TConstructorState, TOrder } from '@utils-types';
 
 export const BurgerConstructor = (): React.JSX.Element | null => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = useSelector(selectUser);
+  const isAuthChecked = useSelector(selectIsAuthChecked);
   const constructorItems: TConstructorState = useSelector(
     (state) => state.burgerConstructor
   );
@@ -25,6 +31,11 @@ export const BurgerConstructor = (): React.JSX.Element | null => {
 
   const onOrderClick = (): void => {
     if (!constructorItems.bun || orderRequest || !order.length) return;
+    if (!isAuthChecked) return;
+    if (!user) {
+      void navigate('/login', { state: { from: location } });
+      return;
+    }
     void dispatch(submitOrder(order));
   };
 
