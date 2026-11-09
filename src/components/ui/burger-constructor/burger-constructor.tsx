@@ -81,7 +81,6 @@ export const BurgerConstructorUI = ({
         Оформить заказ
       </Button>
     </div>
-    {/* Прелоадер в данном месте в "Можно лучше" */}
     {orderRequest && (
       <Modal onClose={closeOrderModal} title={'Оформляем заказ...'}>
         <Preloader />

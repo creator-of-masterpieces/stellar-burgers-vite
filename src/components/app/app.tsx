@@ -7,7 +7,9 @@ import { fetchIngredients } from '@/services/slices/ingredients/ingredientsSlice
 import { checkUser } from '@/services/slices/user/userSlice';
 import { useDispatch, useSelector } from '@/services/store';
 import { AppHeader } from '@components';
+import { Button } from '@krgaa/react-developer-burger-ui-components';
 import { Preloader } from '@ui';
+import { clsx } from 'clsx';
 import { useEffect } from 'react';
 
 import { RouteComponent } from '@components/routes/routes.tsx';
@@ -24,6 +26,7 @@ const App = (): React.JSX.Element => {
   const ingredients: TIngredient[] = useSelector(selectIngredients);
   const isIngredientsLoading = useSelector(selectIsLoading);
   const ingredientsError = useSelector(selectError);
+  const { isAuthChecked, status: authStatus } = useSelector((state) => state.user);
 
   useEffect(() => {
     void dispatch(fetchIngredients());
@@ -33,11 +36,27 @@ const App = (): React.JSX.Element => {
   return (
     <div className={styles.app}>
       <AppHeader />
-      <AppContent
-        ingredients={ingredients}
-        isLoading={isIngredientsLoading}
-        error={ingredientsError}
-      />
+      {!isAuthChecked && authStatus === 'rejected' ? (
+        <div className={styles.message}>
+          <p role="alert" className="text text_type_main-default mb-4">
+            Не удалось проверить авторизацию. Проверьте подключение и повторите попытку.
+          </p>
+          <Button
+            htmlType="button"
+            onClick={() => {
+              void dispatch(checkUser());
+            }}
+          >
+            Повторить проверку
+          </Button>
+        </div>
+      ) : (
+        <AppContent
+          ingredients={ingredients}
+          isLoading={isIngredientsLoading}
+          error={ingredientsError}
+        />
+      )}
     </div>
   );
 };
@@ -52,12 +71,15 @@ const AppContent = ({
   error,
 }: AppContentProps): React.JSX.Element => {
   if (isLoading) {
-    return <Preloader />;
+    // prettier-ignore
+    return (
+      <Preloader />
+    );
   }
 
   if (error) {
     return (
-      <p className={`${styles.message} text text_type_main-medium`}>
+      <p className={clsx(styles.message, 'text text_type_main-medium')}>
         Не удалось загрузить ингредиенты. Попробуйте обновить страницу.
       </p>
     );
@@ -65,9 +87,14 @@ const AppContent = ({
 
   if (!ingredients.length) {
     return (
-      <p className={`${styles.message} text text_type_main-medium`}>Нет ингредиентов</p>
+      <p className={clsx(styles.message, 'text text_type_main-medium')}>
+        Нет ингредиентов
+      </p>
     );
   }
 
-  return <RouteComponent />;
+  // prettier-ignore
+  return (
+    <RouteComponent />
+  );
 };

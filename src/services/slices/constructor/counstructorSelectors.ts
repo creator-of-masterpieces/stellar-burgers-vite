@@ -1,17 +1,30 @@
+import { createSelector } from '@reduxjs/toolkit';
+
 import type { RootState } from '@/services/store';
+import type { TConstructorIngredient } from '@/utils/types';
 
-export const selectOrder = (state: RootState): string[] => {
-  const ingredientsId = [];
-  if (!state.burgerConstructor.bun) return [];
+const selectBun = (state: RootState): TConstructorIngredient | null =>
+  state.burgerConstructor.bun;
+const selectFillings = (state: RootState): TConstructorIngredient[] =>
+  state.burgerConstructor.ingredients;
 
-  ingredientsId.push(state.burgerConstructor.bun._id);
-  state.burgerConstructor.ingredients.forEach((ingredient) =>
-    ingredientsId.push(ingredient._id)
-  );
-  ingredientsId.push(state.burgerConstructor.bun._id);
-  return ingredientsId;
-};
+export const selectOrder = createSelector(
+  [selectBun, selectFillings],
+  (bun, ingredients): string[] =>
+    bun ? [bun._id, ...ingredients.map((ingredient) => ingredient._id), bun._id] : []
+);
 
-export const selectIsLoading = (state: RootState): boolean => {
-  return state.burgerConstructor.status === 'pending';
-};
+export const selectIngredientCounters = createSelector(
+  [selectBun, selectFillings],
+  (bun, ingredients): Record<string, number> => {
+    const counters: Record<string, number> = {};
+    ingredients.forEach(({ _id }) => {
+      counters[_id] = (counters[_id] ?? 0) + 1;
+    });
+    if (bun) counters[bun._id] = 2;
+    return counters;
+  }
+);
+
+export const selectIsLoading = (state: RootState): boolean =>
+  state.burgerConstructor.status === 'pending';

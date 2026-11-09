@@ -22,7 +22,7 @@ const initialState: TProfileOrdersState = {
 
 export const fetchProfileOrders = createAsyncThunk<TOrder[], void, { state: RootState }>(
   'profileOrders/fetchProfileOrders',
-  () => getOrdersApi(),
+  (_, { signal }) => getOrdersApi(signal),
   {
     condition: (_, { getState }) => {
       const { user, profileOrders } = getState();

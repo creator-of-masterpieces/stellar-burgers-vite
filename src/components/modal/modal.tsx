@@ -12,12 +12,16 @@ export const Modal = memo(function Modal({
   children,
 }: TModalProps): React.JSX.Element {
   useEffect(() => {
+    const appRoot = document.getElementById('root');
+    const wasInert = appRoot?.inert ?? false;
+    if (appRoot) appRoot.inert = true;
     const handleEsc = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') onClose();
     };
 
     document.addEventListener('keydown', handleEsc);
     return (): void => {
+      if (appRoot) appRoot.inert = wasInert;
       document.removeEventListener('keydown', handleEsc);
     };
   }, [onClose]);

@@ -1,5 +1,6 @@
 import { ProfileMenu, OrdersList } from '@components';
 import { Button } from '@krgaa/react-developer-burger-ui-components';
+import { clsx } from 'clsx';
 
 import type { ProfileOrdersUIProps } from './type';
 
@@ -10,12 +11,12 @@ export const ProfileOrdersUI = ({
   status,
   onRetry,
 }: ProfileOrdersUIProps): React.JSX.Element => (
-  <main className={`${styles.main}`}>
-    <div className={`mt-30 mr-15 ${styles.menu}`}>
+  <main className={styles.main}>
+    <div className={clsx('mt-30 mr-15', styles.menu)}>
       <ProfileMenu />
     </div>
-    <div className={`mt-10 ${styles.orders}`}>
-      {(status === 'idle' || status === 'pending') && (
+    <div className={clsx('mt-10', styles.orders)}>
+      {!orders.length && (status === 'idle' || status === 'pending') && (
         <p role="status" className="text text_type_main-default p-6">
           Загружаем историю заказов…
         </p>
@@ -30,14 +31,12 @@ export const ProfileOrdersUI = ({
           </Button>
         </div>
       )}
-      {status === 'succeeded' &&
-        (orders.length ? (
-          <OrdersList orders={orders} />
-        ) : (
-          <p className="text text_type_main-default text_color_inactive p-6">
-            У вас пока нет заказов.
-          </p>
-        ))}
+      {orders.length > 0 && <OrdersList orders={orders} />}
+      {status === 'succeeded' && !orders.length && (
+        <p className="text text_type_main-default text_color_inactive p-6">
+          У вас пока нет заказов.
+        </p>
+      )}
     </div>
   </main>
 );

@@ -9,8 +9,14 @@ export const IngredientDetails = (): React.JSX.Element => {
   const ingredientData = useSelector((state) => selectIngredient(state, ingredientId));
 
   if (!ingredientData) {
-    return <NotFound404 />;
+    // prettier-ignore
+    return (
+      <NotFound404 />
+    );
   }
 
-  return <IngredientDetailsUI ingredientData={ingredientData} />;
+  // prettier-ignore
+  return (
+    <IngredientDetailsUI ingredientData={ingredientData} />
+  );
 };

@@ -12,8 +12,27 @@ export const ProfileOrders = (): React.JSX.Element => {
   };
 
   useEffect(() => {
-    void dispatch(fetchProfileOrders());
+    let disposed = false;
+    let timeout: number | undefined;
+    let request: ReturnType<ReturnType<typeof fetchProfileOrders>> | undefined;
+    const loadOrders = (): void => {
+      if (disposed) return;
+      request = dispatch(fetchProfileOrders());
+      void request.then(() => {
+        if (!disposed) timeout = window.setTimeout(loadOrders, 10_000);
+      });
+    };
+    queueMicrotask(loadOrders);
+
+    return (): void => {
+      disposed = true;
+      window.clearTimeout(timeout);
+      request?.abort();
+    };
   }, [dispatch]);
 
-  return <ProfileOrdersUI orders={orders} status={status} onRetry={handleRetry} />;
+  // prettier-ignore
+  return (
+    <ProfileOrdersUI orders={orders} status={status} onRetry={handleRetry} />
+  );
 };

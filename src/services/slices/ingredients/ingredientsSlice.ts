@@ -22,7 +22,7 @@ export const fetchIngredients = createAsyncThunk<TIngredient[]>(
   }
 );
 
-export const IngredientsSlice = createSlice({
+export const ingredientsSlice = createSlice({
   name: 'ingredients',
   initialState,
   reducers: {},
@@ -43,4 +43,4 @@ export const IngredientsSlice = createSlice({
   },
 });
 
-export const ingredientsReducer = IngredientsSlice.reducer;
+export const ingredientsReducer = ingredientsSlice.reducer;

@@ -5,5 +5,8 @@ import { AppHeaderUI } from '@ui';
 export const AppHeader = (): React.JSX.Element => {
   const userName = useSelector(selectUser)?.name;
 
-  return <AppHeaderUI userName={userName} />;
+  // prettier-ignore
+  return (
+    <AppHeaderUI userName={userName} />
+  );
 };

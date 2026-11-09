@@ -10,5 +10,8 @@ export const OrdersList = memo(function OrdersList({
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  return <OrdersListUI orderByDate={orderByDate} />;
+  // prettier-ignore
+  return (
+    <OrdersListUI orderByDate={orderByDate} />
+  );
 });

@@ -1,5 +1,6 @@
 import {
   getUserApi,
+  isAuthError,
   loginUserApi,
   logoutApi,
   refreshToken,
@@ -44,7 +45,7 @@ const saveSession = (data: {
 
 export const checkUser = createAsyncThunk<TUser | null, void, { state: RootState }>(
   'user/checkUser',
-  async () => {
+  async (_, { rejectWithValue }) => {
     if (!getCookie('accessToken') && !localStorage.getItem('refreshToken')) {
       return null;
     }
@@ -54,7 +55,10 @@ export const checkUser = createAsyncThunk<TUser | null, void, { state: RootState
       const data = await getUserApi();
       return data.user;
     } catch (error) {
-      clearTokens();
+      if (isAuthError(error)) {
+        clearTokens();
+        return rejectWithValue({ invalidSession: true });
+      }
       throw error;
     }
   },
@@ -109,11 +113,11 @@ export const userSlice = createSlice({
         state.isAuthChecked = true;
         state.status = 'succeeded';
       })
-      .addCase(checkUser.rejected, (state) => {
+      .addCase(checkUser.rejected, (state, action) => {
         state.user = null;
-        state.isAuthChecked = true;
-        state.status = 'idle';
-        state.error = null;
+        state.isAuthChecked = Boolean(action.meta.rejectedWithValue);
+        state.status = action.meta.rejectedWithValue ? 'idle' : 'rejected';
+        state.error = action.meta.rejectedWithValue ? null : action.error;
       })
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;

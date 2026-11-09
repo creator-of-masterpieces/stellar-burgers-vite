@@ -127,8 +127,16 @@ const GuestRout = (): React.JSX.Element => {
   const location = useLocation();
   const state = location.state as { from?: Location } | null;
 
-  if (!isAuthChecked) return <Preloader />;
-  return user ? <Navigate to={state?.from ?? '/'} replace /> : <Outlet />;
+  if (!isAuthChecked) {
+    // prettier-ignore
+    return (
+      <Preloader />
+    );
+  }
+  // prettier-ignore
+  return (
+    user ? <Navigate to={state?.from ?? '/'} replace /> : <Outlet />
+  );
 };
 
 const ProtectedRout = (): React.JSX.Element => {
@@ -136,6 +144,14 @@ const ProtectedRout = (): React.JSX.Element => {
   const isAuthChecked = useSelector(selectIsAuthChecked);
   const location = useLocation();
 
-  if (!isAuthChecked) return <Preloader />;
-  return user ? <Outlet /> : <Navigate to="/login" state={{ from: location }} replace />;
+  if (!isAuthChecked) {
+    // prettier-ignore
+    return (
+      <Preloader />
+    );
+  }
+  // prettier-ignore
+  return (
+    user ? <Outlet /> : <Navigate to="/login" state={{ from: location }} replace />
+  );
 };

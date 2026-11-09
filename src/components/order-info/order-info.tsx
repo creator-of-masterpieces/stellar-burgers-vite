@@ -4,7 +4,7 @@ import { fetchOrderData } from '@/services/slices/orderDetails/orderDetailsSlice
 import { useDispatch, useSelector } from '@/services/store';
 import { Preloader, OrderInfoUI } from '@ui';
 import { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useMatch, useParams } from 'react-router-dom';
 
 import type { TIngredient } from '@utils-types';
 
@@ -18,12 +18,27 @@ export const OrderInfo = ({ showNumber = false }: OrderInfoProps): React.JSX.Ele
   const isOrderNumberValid = Number.isSafeInteger(orderNumber) && orderNumber > 0;
   const ingredients: TIngredient[] = useSelector(selectIngredients);
 
-  const orderData = useSelector((state) => state.orderDetails.order);
+  const isProfileOrder = Boolean(useMatch('/profile/orders/:number'));
+  const cachedOrder = useSelector((state) => {
+    const sources = isProfileOrder
+      ? [state.profileOrders.orders, state.feed.orders]
+      : [state.feed.orders, state.profileOrders.orders];
+    return (
+      sources[0].find((order) => order.number === orderNumber) ??
+      sources[1].find((order) => order.number === orderNumber)
+    );
+  });
+  const fetchedOrder = useSelector((state) => state.orderDetails.order);
+  const requestedNumber = useSelector((state) => state.orderDetails.requestedNumber);
+  const orderData =
+    cachedOrder ?? (fetchedOrder?.number === orderNumber ? fetchedOrder : null);
+  const hasCachedOrder = Boolean(cachedOrder);
 
   useEffect(() => {
-    if (!isOrderNumberValid) return;
-    void dispatch(fetchOrderData(orderNumber));
-  }, [dispatch, orderNumber, isOrderNumberValid]);
+    if (!isOrderNumberValid || hasCachedOrder) return;
+    const request = dispatch(fetchOrderData(orderNumber));
+    return (): void => request.abort();
+  }, [dispatch, orderNumber, isOrderNumberValid, hasCachedOrder]);
 
   /**
    * использование useMemo не обязательно
@@ -69,10 +84,13 @@ export const OrderInfo = ({ showNumber = false }: OrderInfoProps): React.JSX.Ele
   }, [orderData, ingredients]);
 
   if (!isOrderNumberValid) {
-    return <NotFound404 />;
+    // prettier-ignore
+    return (
+      <NotFound404 />
+    );
   }
 
-  if (requestStatus === 'rejected') {
+  if (!orderData && requestedNumber === orderNumber && requestStatus === 'rejected') {
     return (
       <p className="text text_type_main-default text_color_inactive p-6">
         Не удалось загрузить заказ. Попробуйте открыть его ещё раз.
@@ -81,8 +99,14 @@ export const OrderInfo = ({ showNumber = false }: OrderInfoProps): React.JSX.Ele
   }
 
   if (!orderInfo) {
-    return <Preloader />;
+    // prettier-ignore
+    return (
+      <Preloader />
+    );
   }
 
-  return <OrderInfoUI orderInfo={orderInfo} showNumber={showNumber} />;
+  // prettier-ignore
+  return (
+    <OrderInfoUI orderInfo={orderInfo} showNumber={showNumber} />
+  );
 };

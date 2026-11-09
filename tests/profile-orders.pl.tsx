@@ -173,7 +173,7 @@ test('guest is redirected before history or private details load', async ({
   expect(requests).toBe(0);
 });
 
-test('late response from previous account cannot replace current user history', async ({
+test('cancels previous account request and keeps current user history', async ({
   page,
 }) => {
   let finishOldRequest!: () => void;
@@ -203,21 +203,22 @@ test('late response from previous account cannot replace current user history', 
   );
   await page.goto('/profile/orders');
   await expect(page.getByRole('status')).toBeVisible();
+  const cancelled = page.waitForEvent(
+    'requestfailed',
+    (request) =>
+      request.url().endsWith('/orders') &&
+      request.headers().authorization === accessToken
+  );
   await page.getByRole('button', { name: 'Выход', exact: true }).click();
   await expect(page).toHaveURL('/login');
+  await cancelled;
   await page.locator('input[name="email"]').fill('other@example.com');
   await page.locator('input[name="password"]').fill('password123');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page).toHaveURL('/profile/orders');
   await expect(page.getByText('У вас пока нет заказов.', { exact: true })).toBeVisible();
 
-  const oldResponse = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/orders') &&
-      response.request().headers().authorization === accessToken
-  );
   finishOldRequest();
-  await (await oldResponse).finished();
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {

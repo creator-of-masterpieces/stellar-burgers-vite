@@ -29,7 +29,10 @@ export const Feed = (): React.JSX.Element => {
   }
 
   if (isLoading) {
-    return <Preloader />;
+    // prettier-ignore
+    return (
+      <Preloader />
+    );
   }
 
   if (fetchStatus === 'succeeded' && orders.length === 0) {
@@ -40,5 +43,8 @@ export const Feed = (): React.JSX.Element => {
     );
   }
 
-  return <FeedUI orders={orders} handleGetFeeds={handleGetFeeds} />;
+  // prettier-ignore
+  return (
+    <FeedUI orders={orders} handleGetFeeds={handleGetFeeds} />
+  );
 };

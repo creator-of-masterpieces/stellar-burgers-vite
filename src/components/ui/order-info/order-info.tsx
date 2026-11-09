@@ -3,6 +3,7 @@ import {
   CurrencyIcon,
   FormattedDate,
 } from '@krgaa/react-developer-burger-ui-components';
+import { clsx } from 'clsx';
 import { memo } from 'react';
 
 import type { OrderInfoUIProps } from './type';
@@ -16,7 +17,7 @@ export const OrderInfoUI = memo(function OrderInfoUI({
   return (
     <div className={styles.wrap}>
       {showNumber && (
-        <p className={`text text_type_digits-default mt-10 ${styles.number}`}>
+        <p className={clsx('text text_type_digits-default mt-10', styles.number)}>
           #{String(orderInfo.number).padStart(6, '0')}
         </p>
       )}

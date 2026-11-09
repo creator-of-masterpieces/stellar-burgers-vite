@@ -5,7 +5,20 @@ import type { TIngredient, TOrder, TUser } from './types';
 const URL = process.env.BURGER_API_URL;
 
 const checkResponse = <T>(res: Response): Promise<T> =>
-  res.ok ? res.json() : res.json().then((err) => Promise.reject(toApiError(err)));
+  res.ok
+    ? res.json()
+    : res.json().then((err) => Promise.reject(toApiError(err, res.status)));
+
+class ApiError extends Error {
+  status?: number;
+}
+
+export const isAuthError = (error: unknown): boolean =>
+  error instanceof Error &&
+  ((error instanceof ApiError && (error.status === 401 || error.status === 403)) ||
+    /^(jwt expired|jwt malformed|invalid signature|token is invalid|token required|you should be authorised)$/i.test(
+      error.message
+    ));
 
 type TServerResponse<T = unknown> = {
   success: boolean;
@@ -16,7 +29,8 @@ type TServerResponse<T = unknown> = {
  * payload is wrapped in a real Error before rejecting. The original body is
  * kept in `cause` for debugging.
  */
-const toApiError = (payload: unknown): Error => {
+const toApiError = (payload: unknown, status?: number): Error => {
+  if (payload instanceof Error) return payload;
   const message =
     typeof payload === 'object' &&
     payload !== null &&
@@ -25,7 +39,9 @@ const toApiError = (payload: unknown): Error => {
       ? (payload as { message: string }).message
       : 'Не удалось выполнить запрос к серверу';
 
-  return new Error(message, { cause: payload });
+  const error = new ApiError(message, { cause: payload });
+  error.status = status;
+  return error;
 };
 
 type TRefreshResponse = TServerResponse<{
@@ -103,8 +119,9 @@ export const getFeedsApi = (): Promise<TFeedsResponse> =>
       return Promise.reject(toApiError(data));
     });
 
-export const getOrdersApi = (): Promise<TOrder[]> =>
+export const getOrdersApi = (signal?: AbortSignal): Promise<TOrder[]> =>
   fetchWithRefresh<TFeedsResponse>(`${URL}/orders`, {
+    signal,
     method: 'GET',
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
@@ -139,8 +156,12 @@ type TOrderResponse = TServerResponse<{
   orders: TOrder[];
 }>;
 
-export const getOrderByNumberApi = (number: number): Promise<TOrderResponse> =>
+export const getOrderByNumberApi = (
+  number: number,
+  signal?: AbortSignal
+): Promise<TOrderResponse> =>
   fetch(`${URL}/orders/${number}`, {
+    signal,
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
