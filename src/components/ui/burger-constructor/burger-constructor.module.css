@@ -25,6 +25,10 @@
   align-items: center;
 }
 
+.error {
+  color: var(--colors-interface-error);
+}
+
 .text {
   font-weight: normal;
   font-size: 48px;

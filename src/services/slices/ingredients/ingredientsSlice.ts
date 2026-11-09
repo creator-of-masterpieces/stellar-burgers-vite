@@ -1,6 +1,7 @@
 import { getIngredientsApi } from '@/utils/burger-api';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
+import type { RootState } from '@/services/store';
 import type { FetchStatus, TIngredient, TRequestError } from '@/utils/types';
 
 type IngredientsState = {
@@ -15,10 +16,20 @@ const initialState: IngredientsState = {
   error: null,
 };
 
-export const fetchIngredients = createAsyncThunk<TIngredient[]>(
+export const fetchIngredients = createAsyncThunk<
+  TIngredient[],
+  void,
+  { state: RootState }
+>(
   'ingredients/fetchIngredients',
   async () => {
     return getIngredientsApi();
+  },
+  {
+    condition: (_, { getState }) => {
+      const { status } = getState().ingredients;
+      return status !== 'pending' && status !== 'succeeded';
+    },
   }
 );
 

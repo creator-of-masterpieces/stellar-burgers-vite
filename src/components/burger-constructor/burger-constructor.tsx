@@ -28,6 +28,7 @@ export const BurgerConstructor = (): React.JSX.Element | null => {
   const orderModalData: TOrder | null = useSelector(
     (state) => state.burgerConstructor.order
   );
+  const orderError = useSelector((state) => state.burgerConstructor.error);
 
   const onOrderClick = (): void => {
     if (!constructorItems.bun || orderRequest || !order.length) return;
@@ -60,6 +61,9 @@ export const BurgerConstructor = (): React.JSX.Element | null => {
       orderRequest={orderRequest}
       constructorItems={constructorItems}
       orderModalData={orderModalData}
+      errorText={
+        orderError ? 'Не удалось оформить заказ. Попробуйте ещё раз.' : undefined
+      }
       onOrderClick={onOrderClick}
       closeOrderModal={closeOrderModal}
     />

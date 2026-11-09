@@ -10,6 +10,7 @@ import {
   selectIngredientCounters,
   selectOrder,
 } from './slices/constructor/counstructorSelectors';
+import { fetchIngredients } from './slices/ingredients/ingredientsSlice';
 import {
   fetchOrderData,
   orderDetailsReducer,
@@ -45,6 +46,48 @@ const order: TOrder = {
   createdAt: '',
   updatedAt: '',
 };
+
+test('catalog skips requests while loading and after success', async () => {
+  const store = configureStore({ reducer: rootReducer });
+  let finishRequest!: (response: Response) => void;
+  const pending = new Promise<Response>((resolve) => {
+    finishRequest = resolve;
+  });
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockReturnValueOnce(pending);
+  try {
+    const firstRequest = store.dispatch(fetchIngredients());
+    expect(store.getState().ingredients.status).toBe('pending');
+    await store.dispatch(fetchIngredients());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    finishRequest(new Response(JSON.stringify({ success: true, data: [bun, filling] })));
+    await firstRequest.unwrap();
+    await store.dispatch(fetchIngredients());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(store.getState().ingredients.status).toBe('succeeded');
+    expect(store.getState().ingredients.ingredients).toEqual([bun, filling]);
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
+test('catalog allows retry after a failed request', async () => {
+  const store = configureStore({ reducer: rootReducer });
+  const fetchMock = jest
+    .spyOn(globalThis, 'fetch')
+    .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: [bun] })));
+  try {
+    await store.dispatch(fetchIngredients());
+    expect(store.getState().ingredients.status).toBe('rejected');
+    await store.dispatch(fetchIngredients()).unwrap();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(store.getState().ingredients.status).toBe('succeeded');
+    expect(store.getState().ingredients.error).toBeNull();
+    expect(store.getState().ingredients.ingredients).toEqual([bun]);
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
 
 test('one prepared action always produces the same constructor; instances retain their IDs when moved', () => {
   const action = addIngredient(filling);
@@ -125,3 +168,4 @@ test('history ignores a previous account response after logout and a new login',
     profileOrdersReducer(state, fetchProfileOrders.fulfilled([order], 'old', undefined))
   ).toEqual(state);
 });
+import { configureStore } from '@reduxjs/toolkit';
