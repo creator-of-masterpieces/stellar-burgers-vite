@@ -1,6 +1,7 @@
 import { OrdersList, FeedInfo } from '@components';
 import { RefreshButton } from '@krgaa/react-developer-burger-ui-components';
 import { Preloader } from '@ui';
+import { clsx } from 'clsx';
 import { memo } from 'react';
 
 import type { FeedUIProps } from './type';
@@ -14,7 +15,7 @@ export const FeedUI = memo(function FeedUI({
 }: FeedUIProps): React.JSX.Element {
   return (
     <main className={styles.containerMain}>
-      <div className={`${styles.titleBox} mt-10 mb-5`}>
+      <div className={clsx(styles.titleBox, 'mt-10', 'mb-5')}>
         <h1 className="text text_type_main-large">Лента заказов</h1>
         <RefreshButton
           text="Обновить"
@@ -23,7 +24,7 @@ export const FeedUI = memo(function FeedUI({
           extraClass={'ml-30'}
         />
       </div>
-      <div className={`${styles.statusArea} mb-5`}>
+      <div className={clsx(styles.statusArea, 'mb-5')}>
         {(status === 'idle' || status === 'pending') && (
           <div role="status">
             {orders.length ? (

@@ -11,7 +11,6 @@ export const Feed = (): React.JSX.Element => {
   const orders: TOrder[] = useSelector((state) => state.feed.orders);
 
   const handleGetFeeds = (): void => {
-    if (fetchStatus === 'pending') return;
     void dispatch(fetchFeed());
   };
 

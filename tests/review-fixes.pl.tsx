@@ -49,6 +49,11 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/ingredients', (route) =>
     route.fulfill({ json: { success: true, data: [bun, otherBun, filling] } })
   );
+  await page.route('**/orders/all', (route) =>
+    route.fulfill({
+      json: { success: true, orders: [order], total: 12345, totalToday: 42 },
+    })
+  );
 });
 
 test('feed keeps cards and totals during refresh and failure, then retries successfully', async ({
@@ -127,6 +132,128 @@ test('feed allows retry after initial failure and refresh after an empty respons
   await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
   await expect(page.getByText('Заказов пока нет.', { exact: true })).toHaveCount(0);
 });
+
+test('StrictMode loads the feed once and allows a later manual refresh', async ({
+  page,
+}) => {
+  let requests = 0;
+  let finishRequest!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finishRequest = resolve;
+  });
+  await page.route('**/orders/all', async (route) => {
+    requests++;
+    await pending;
+    await route.fulfill({
+      json: { success: true, orders: [order], total: 12345, totalToday: 42 },
+    });
+  });
+  try {
+    await page.goto('/feed');
+    const button = page.getByRole('button', { name: 'Обновить', exact: true });
+    await expect(button).toBeDisabled();
+    finishRequest();
+    await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
+    await expect(button).toBeEnabled();
+    expect(requests).toBe(1);
+    await button.click();
+    await expect(button).toBeEnabled();
+    expect(requests).toBe(2);
+  } finally {
+    finishRequest();
+  }
+});
+
+for (const feedState of ['loaded', 'pending', 'failing'] as const) {
+  test(`successful order refreshes the open feed when its earlier request is ${feedState}`, async ({
+    page,
+  }) => {
+    await authenticate(page);
+    const newOrder = { ...order, _id: 'new-order', number: 202, name: 'Новый заказ' };
+    let created = false;
+    let feedRequests = 0;
+    let finishOrder!: () => void;
+    const pendingOrder = new Promise<void>((resolve) => {
+      finishOrder = resolve;
+    });
+    let finishFeed!: () => void;
+    const pendingFeed = new Promise<void>((resolve) => {
+      finishFeed = resolve;
+    });
+    await page.route('**/orders/all', async (route) => {
+      const requestNumber = ++feedRequests;
+      const snapshot = created;
+      if (requestNumber === 2 && feedState !== 'loaded') {
+        await pendingFeed;
+        if (feedState === 'failing') {
+          await route.fulfill({ status: 500, json: { success: false } });
+          return;
+        }
+      }
+      await route.fulfill({
+        json: {
+          success: true,
+          orders: snapshot ? [newOrder, order] : [order],
+          total: snapshot ? 12346 : 12345,
+          totalToday: snapshot ? 43 : 42,
+        },
+      });
+    });
+    await page.route('**/orders', async (route) => {
+      expect(route.request().method()).toBe('POST');
+      await pendingOrder;
+      created = true;
+      await route.fulfill({
+        json: { success: true, order: newOrder, name: newOrder.name },
+      });
+    });
+    try {
+      await page.goto('/feed');
+      await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
+      await page.getByRole('link', { name: 'Конструктор', exact: true }).click();
+      for (const id of [bun._id, filling._id]) {
+        await page
+          .locator(`a[href="/ingredients/${id}"]`)
+          .locator('..')
+          .getByRole('button', { name: 'Добавить' })
+          .click();
+      }
+      await page.getByRole('button', { name: 'Оформить заказ', exact: true }).click();
+      await expect(page.locator('#modals')).toContainText('Оформляем заказ');
+      await page.goBack();
+      await expect(page).toHaveURL('/feed');
+      const button = page.getByRole('button', { name: 'Обновить', exact: true });
+      await expect.poll(() => feedRequests).toBe(2);
+      if (feedState === 'loaded') {
+        await expect(button).toBeEnabled();
+      } else {
+        await expect(button).toBeDisabled();
+      }
+      const orderResponse = page.waitForResponse(
+        (response) =>
+          response.url().endsWith('/orders') && response.request().method() === 'POST'
+      );
+      finishOrder();
+      await (await orderResponse).finished();
+      if (feedState !== 'loaded') {
+        await expect(page.locator('main a[href="/feed/202"]')).toHaveCount(0);
+        expect(feedRequests).toBe(2);
+        finishFeed();
+      }
+      await expect(page.locator('main a[href="/feed/202"]')).toContainText(
+        newOrder.name
+      );
+      await expect(page.getByText('12346', { exact: true })).toBeVisible();
+      await expect(page.getByText('43', { exact: true })).toBeVisible();
+      await expect(page.getByRole('alert')).toHaveCount(0);
+      await expect(button).toBeEnabled();
+      expect(feedRequests).toBe(3);
+    } finally {
+      finishOrder();
+      finishFeed();
+    }
+  });
+}
 
 test('StrictMode loads the catalog once and navigation reuses it', async ({ page }) => {
   let requests = 0;

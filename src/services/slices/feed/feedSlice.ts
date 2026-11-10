@@ -1,6 +1,7 @@
 import { getFeedsApi } from '@/utils/burger-api';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
+import type { RootState } from '@/services/store';
 import type { TFeedState, TOrdersData } from '@/utils/types';
 
 const initialState: TFeedState = {
@@ -11,9 +12,13 @@ const initialState: TFeedState = {
   totalToday: 0,
 };
 
-export const fetchFeed = createAsyncThunk<TOrdersData>('feed/fetchFeed', () => {
-  return getFeedsApi();
-});
+export const fetchFeed = createAsyncThunk<TOrdersData, void, { state: RootState }>(
+  'feed/fetchFeed',
+  () => getFeedsApi(),
+  {
+    condition: (_, { getState }) => getState().feed.status !== 'pending',
+  }
+);
 
 export const feedSlice = createSlice({
   name: 'feed',
