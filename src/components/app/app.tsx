@@ -6,7 +6,6 @@ import { fetchIngredients } from '@/services/slices/ingredients/ingredientsSlice
 import { checkUser } from '@/services/slices/user/userSlice';
 import { useDispatch, useSelector } from '@/services/store';
 import { AppHeader } from '@components';
-import { Button } from '@krgaa/react-developer-burger-ui-components';
 import { Preloader } from '@ui';
 import { clsx } from 'clsx';
 import { useEffect } from 'react';
@@ -24,7 +23,6 @@ const App = (): React.JSX.Element => {
   const dispatch = useDispatch();
   const ingredients: TIngredient[] = useSelector(selectIngredients);
   const ingredientsStatus = useSelector(selectStatus);
-  const { isAuthChecked, status: authStatus } = useSelector((state) => state.user);
 
   useEffect(() => {
     void dispatch(fetchIngredients());
@@ -34,23 +32,7 @@ const App = (): React.JSX.Element => {
   return (
     <div className={styles.app}>
       <AppHeader />
-      {!isAuthChecked && authStatus === 'rejected' ? (
-        <div className={styles.message}>
-          <p role="alert" className="text text_type_main-default mb-4">
-            Не удалось проверить авторизацию. Проверьте подключение и повторите попытку.
-          </p>
-          <Button
-            htmlType="button"
-            onClick={() => {
-              void dispatch(checkUser());
-            }}
-          >
-            Повторить проверку
-          </Button>
-        </div>
-      ) : (
-        <AppContent ingredients={ingredients} status={ingredientsStatus} />
-      )}
+      <AppContent ingredients={ingredients} status={ingredientsStatus} />
     </div>
   );
 };

@@ -392,3 +392,94 @@ test('refresh token restores session without access cookie; invalid session clea
     (await page.context().cookies()).some((cookie) => cookie.name === 'accessToken')
   ).toBe(false);
 });
+
+test('public routes stay available while the session check is pending and after failure', async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([
+    { name: 'accessToken', value: session.accessToken, url: 'http://localhost:4000' },
+  ]);
+  let finishCheck!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finishCheck = resolve;
+  });
+  await page.route('**/auth/user', async (route) => {
+    await pending;
+    await route.abort('failed');
+  });
+  await page.route('**/orders/all', (route) =>
+    route.fulfill({ json: { success: true, orders: [], total: 0, totalToday: 0 } })
+  );
+
+  try {
+    await page.goto('/');
+    await expect(page.getByTestId('constructor')).toBeVisible();
+    await page.getByRole('link', { name: 'Лента заказов', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Лента заказов' })).toBeVisible();
+    const failure = page.waitForEvent('requestfailed', {
+      predicate: (request) => request.url().endsWith('/auth/user'),
+    });
+    finishCheck();
+    await failure;
+    await page.getByRole('link', { name: 'Личный кабинет', exact: true }).click();
+    await expect(page).toHaveURL('/profile');
+    await expect(page.getByRole('alert')).toContainText(
+      'Не удалось проверить авторизацию'
+    );
+    await expect(page.locator('input[name="name"]')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Лента заказов', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Лента заказов' })).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await page.getByRole('link', { name: 'Конструктор', exact: true }).click();
+    await expect(page.getByTestId('constructor')).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+  } finally {
+    finishCheck();
+  }
+});
+
+test('guest route retries a failed session check before redirecting an authenticated user', async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([
+    { name: 'accessToken', value: session.accessToken, url: 'http://localhost:4000' },
+  ]);
+  let checks = 0;
+  let finishRetry!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finishRetry = resolve;
+  });
+  await page.route('**/auth/user', async (route) => {
+    checks++;
+    if (checks === 1) {
+      await route.abort('failed');
+      return;
+    }
+    await pending;
+    await route.fulfill({ json: { success: true, user } });
+  });
+
+  try {
+    await page.goto('/login');
+    await expect(page.getByRole('alert')).toContainText(
+      'Не удалось проверить авторизацию'
+    );
+    await expect(page.locator('input[name="email"]')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Повторить проверку' }).click();
+    await expect.poll(() => checks).toBe(2);
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Повторить проверку' })).toHaveCount(
+      0
+    );
+    await expect(page.locator('input[name="email"]')).toHaveCount(0);
+    await expect(page).toHaveURL('/login');
+    finishRetry();
+    await expect(page).toHaveURL('/');
+    await expect(page.getByRole('link', { name: user.name, exact: true })).toBeVisible();
+    expect(checks).toBe(2);
+  } finally {
+    finishRetry();
+  }
+});

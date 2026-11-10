@@ -1,6 +1,8 @@
 import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
-import { useSelector } from '@/services/store';
+import { checkUser } from '@/services/slices/user/userSlice';
+import { useDispatch, useSelector } from '@/services/store';
 import { ORDER_NUMBER_MIN_LENGTH } from '@/utils/constants';
+import { Button } from '@krgaa/react-developer-burger-ui-components';
 import {
   ConstructorPage,
   Feed,
@@ -27,6 +29,8 @@ import {
 import { IngredientDetails } from '@components/ingredient-details';
 import { Modal } from '@components/modal';
 import { OrderInfo } from '@components/order-info';
+
+import styles from './routes.module.css';
 
 type ModalLocationState = {
   background?: Location;
@@ -122,6 +126,31 @@ export const RouteComponent = (): React.JSX.Element => {
   );
 };
 
+const AuthCheck = (): React.JSX.Element => {
+  const dispatch = useDispatch();
+  const status = useSelector((state) => state.user.status);
+
+  if (status !== 'rejected') {
+    return <Preloader />;
+  }
+
+  return (
+    <div className={styles.message}>
+      <p role="alert" className="text text_type_main-default mb-4">
+        Не удалось проверить авторизацию. Проверьте подключение и повторите попытку.
+      </p>
+      <Button
+        htmlType="button"
+        onClick={() => {
+          void dispatch(checkUser());
+        }}
+      >
+        Повторить проверку
+      </Button>
+    </div>
+  );
+};
+
 const GuestRout = (): React.JSX.Element => {
   const user = useSelector(selectUser);
   const isAuthChecked = useSelector(selectIsAuthChecked);
@@ -129,10 +158,7 @@ const GuestRout = (): React.JSX.Element => {
   const state = location.state as { from?: Location } | null;
 
   if (!isAuthChecked) {
-    // prettier-ignore
-    return (
-      <Preloader />
-    );
+    return <AuthCheck />;
   }
   // prettier-ignore
   return (
@@ -146,10 +172,7 @@ const ProtectedRout = (): React.JSX.Element => {
   const location = useLocation();
 
   if (!isAuthChecked) {
-    // prettier-ignore
-    return (
-      <Preloader />
-    );
+    return <AuthCheck />;
   }
   // prettier-ignore
   return (
