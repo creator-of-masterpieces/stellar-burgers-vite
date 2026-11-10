@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from '@/services/store';
 import { ProfileOrdersUI } from '@ui-pages';
 import { useEffect } from 'react';
 
+const PROFILE_ORDERS_REFRESH_INTERVAL_MS = 10_000;
+
 export const ProfileOrders = (): React.JSX.Element => {
   const dispatch = useDispatch();
   const { orders, status } = useSelector((state) => state.profileOrders);
@@ -19,7 +21,9 @@ export const ProfileOrders = (): React.JSX.Element => {
       if (disposed) return;
       request = dispatch(fetchProfileOrders());
       void request.then(() => {
-        if (!disposed) timeout = window.setTimeout(loadOrders, 10_000);
+        if (!disposed) {
+          timeout = window.setTimeout(loadOrders, PROFILE_ORDERS_REFRESH_INTERVAL_MS);
+        }
       });
     };
     queueMicrotask(loadOrders);

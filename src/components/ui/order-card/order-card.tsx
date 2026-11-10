@@ -1,3 +1,4 @@
+import { ORDER_NUMBER_MIN_LENGTH } from '@/utils/constants';
 import { OrderStatus } from '@components';
 import {
   CurrencyIcon,
@@ -24,7 +25,7 @@ export const OrderCardUI = memo(function OrderCardUI({
     >
       <div className={styles.order_info}>
         <span className="text text_type_digits-default">
-          #{String(orderInfo.number).padStart(6, '0')}
+          #{String(orderInfo.number).padStart(ORDER_NUMBER_MIN_LENGTH, '0')}
         </span>
         <span className="text text_type_main-default text_color_inactive">
           <FormattedDate date={orderInfo.date} />

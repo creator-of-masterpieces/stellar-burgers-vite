@@ -1,7 +1,6 @@
 import {
-  selectError,
   selectIngredients,
-  selectIsLoading,
+  selectStatus,
 } from '@/services/slices/ingredients/ingredientsSelectors';
 import { fetchIngredients } from '@/services/slices/ingredients/ingredientsSlice';
 import { checkUser } from '@/services/slices/user/userSlice';
@@ -24,8 +23,7 @@ import styles from './app.module.css';
 const App = (): React.JSX.Element => {
   const dispatch = useDispatch();
   const ingredients: TIngredient[] = useSelector(selectIngredients);
-  const isIngredientsLoading = useSelector(selectIsLoading);
-  const ingredientsError = useSelector(selectError);
+  const ingredientsStatus = useSelector(selectStatus);
   const { isAuthChecked, status: authStatus } = useSelector((state) => state.user);
 
   useEffect(() => {
@@ -51,11 +49,7 @@ const App = (): React.JSX.Element => {
           </Button>
         </div>
       ) : (
-        <AppContent
-          ingredients={ingredients}
-          isLoading={isIngredientsLoading}
-          error={ingredientsError}
-        />
+        <AppContent ingredients={ingredients} status={ingredientsStatus} />
       )}
     </div>
   );
@@ -65,19 +59,15 @@ export default App;
 
 /* Маршруты показываются только когда ингредиенты загружены: без них не
    отрисовать ни конструктор, ни состав заказа. */
-const AppContent = ({
-  ingredients,
-  isLoading,
-  error,
-}: AppContentProps): React.JSX.Element => {
-  if (isLoading) {
+const AppContent = ({ ingredients, status }: AppContentProps): React.JSX.Element => {
+  if (status === 'idle' || status === 'pending') {
     // prettier-ignore
     return (
       <Preloader />
     );
   }
 
-  if (error) {
+  if (status === 'rejected') {
     return (
       <p className={clsx(styles.message, 'text text_type_main-medium')}>
         Не удалось загрузить ингредиенты. Попробуйте обновить страницу.

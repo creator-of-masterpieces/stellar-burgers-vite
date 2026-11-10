@@ -1,5 +1,6 @@
 import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
 import { useSelector } from '@/services/store';
+import { ORDER_NUMBER_MIN_LENGTH } from '@/utils/constants';
 import {
   ConstructorPage,
   Feed,
@@ -89,7 +90,7 @@ export const RouteComponent = (): React.JSX.Element => {
               <Modal
                 title={
                   orderNumber
-                    ? `#${orderNumber.padStart(6, '0')}`
+                    ? `#${orderNumber.padStart(ORDER_NUMBER_MIN_LENGTH, '0')}`
                     : `Информация о заказе`
                 }
                 onClose={handleClose}
@@ -105,7 +106,7 @@ export const RouteComponent = (): React.JSX.Element => {
                 <Modal
                   title={
                     orderNumber
-                      ? `#${orderNumber.padStart(6, '0')}`
+                      ? `#${orderNumber.padStart(ORDER_NUMBER_MIN_LENGTH, '0')}`
                       : 'Информация о заказе'
                   }
                   onClose={handleClose}
