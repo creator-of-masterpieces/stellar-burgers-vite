@@ -1,3 +1,4 @@
+import { useFormValidation } from '@/hooks/useFormValidation';
 import { PASSWORD_MIN_LENGTH } from '@/utils/validation';
 import {
   Input,
@@ -23,6 +24,7 @@ export const RegisterUI = ({
   isLoading = false,
 }: RegisterUIProps): React.JSX.Element => {
   const state = useLocation().state as { from?: Location } | null;
+  const { errors, onInvalid, onBlur, onChange } = useFormValidation();
   return (
     <main className={styles.container}>
       <div className={clsx('pt-6', styles.wrapCenter)}>
@@ -31,7 +33,9 @@ export const RegisterUI = ({
           className={clsx('pb-15', styles.form)}
           name="register"
           onSubmit={handleSubmit}
-          onInvalid={(event) => event.preventDefault()}
+          onInvalid={onInvalid}
+          onBlurCapture={onBlur}
+          onChange={onChange}
         >
           <>
             <div className="pb-6">
@@ -42,8 +46,9 @@ export const RegisterUI = ({
                 onChange={(e) => setUserName(e.target.value)}
                 value={userName}
                 name="name"
-                error={false}
-                errorText=""
+                error={!!errors.name}
+                errorText={errors.name}
+                aria-invalid={!!errors.name}
                 size="default"
               />
             </div>
@@ -55,8 +60,9 @@ export const RegisterUI = ({
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
                 name={'email'}
-                error={false}
-                errorText=""
+                error={!!errors.email}
+                errorText={errors.email}
+                aria-invalid={!!errors.email}
                 size={'default'}
               />
             </div>
@@ -67,8 +73,21 @@ export const RegisterUI = ({
                 name="password"
                 required
                 minLength={PASSWORD_MIN_LENGTH}
-                errorText={`Пароль должен содержать не менее ${PASSWORD_MIN_LENGTH} символов`}
+                errorText=""
+                aria-invalid={!!errors.password}
+                aria-describedby={
+                  errors.password ? 'register-password-error' : undefined
+                }
               />
+              {errors.password && (
+                <p
+                  id="register-password-error"
+                  className={clsx(styles.error, 'text text_type_main-default')}
+                  role="alert"
+                >
+                  {errors.password}
+                </p>
+              )}
             </div>
             <div className={clsx('pb-6', styles.button)}>
               <Button

@@ -35,6 +35,87 @@ const fillLogin = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
 };
 
+for (const formName of ['login', 'register'] as const) {
+  test(`${formName} explains invalid fields and clears errors after correction`, async ({
+    page,
+  }) => {
+    let requests = 0;
+    await page.route(`**/auth/${formName}`, (route) => {
+      requests++;
+      return route.fulfill({ json: session });
+    });
+    await page.goto(`/${formName}`);
+    const submit = page.getByRole('button', {
+      name: formName === 'register' ? 'Зарегистрироваться' : 'Войти',
+      exact: true,
+    });
+    await submit.click();
+    await expect(page.getByText('Введите e-mail', { exact: true })).toBeVisible();
+    await expect(page.getByText('Введите пароль', { exact: true })).toBeVisible();
+    if (formName === 'register') {
+      await expect(page.getByText('Введите имя', { exact: true })).toBeVisible();
+      await page.locator('input[name="name"]').fill(user.name);
+      await expect(page.getByText('Введите имя', { exact: true })).toHaveCount(0);
+    }
+    const email = page.locator('input[name="email"]');
+    await email.fill('invalid-email');
+    await expect(
+      page.getByText('Введите корректный e-mail', { exact: true })
+    ).toBeVisible();
+    await page.locator('input[name="password"]').fill('123456');
+    await expect(page.getByText('Введите пароль', { exact: true })).toHaveCount(0);
+    await submit.click();
+    await email.press('Enter');
+    await expect(page).toHaveURL(`/${formName}`);
+    expect(requests).toBe(0);
+    await email.fill(user.email);
+    await expect(
+      page.getByText('Введите корректный e-mail', { exact: true })
+    ).toHaveCount(0);
+    await email.press('Enter');
+    await expect(page).toHaveURL('/');
+    expect(requests).toBe(1);
+  });
+}
+
+test('password reset explains empty and short fields before accepting valid input', async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem('resetPassword', 'true'));
+  let requests = 0;
+  await page.route('**/password-reset/reset', (route) => {
+    requests++;
+    expect(route.request().postDataJSON()).toEqual({
+      password: '123456',
+      token: 'code',
+    });
+    return route.fulfill({ json: { success: true } });
+  });
+  await page.goto('/reset-password');
+  const submit = page.getByRole('button', { name: 'Сохранить', exact: true });
+  await submit.click();
+  await expect(page.getByText('Введите пароль', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: /^Введите код из письма$/ })
+  ).toBeVisible();
+  const password = page.locator('input[name="password"]');
+  await password.fill('123');
+  await expect(
+    page.getByText('Пароль должен содержать не менее 6 символов', { exact: true })
+  ).toBeVisible();
+  await password.press('Enter');
+  expect(requests).toBe(0);
+  await password.fill('123456');
+  await page.locator('input[name="token"]').fill('code');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: /^Введите код из письма$/ })
+  ).toHaveCount(0);
+  await submit.click();
+  await expect(page).toHaveURL('/login');
+  expect(requests).toBe(1);
+});
+
 for (const failure of [
   'missing refresh token',
   'rejected refresh token',

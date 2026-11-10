@@ -1,3 +1,4 @@
+import { useFormValidation } from '@/hooks/useFormValidation';
 import { PASSWORD_MIN_LENGTH } from '@/utils/validation';
 import {
   Input,
@@ -21,6 +22,7 @@ export const ResetPasswordUI = ({
   isLoading = false,
 }: ResetPasswordUIProps): React.JSX.Element => {
   const state = useLocation().state as { from?: Location } | null;
+  const { errors, onInvalid, onBlur, onChange } = useFormValidation();
   return (
     <main className={styles.container}>
       <div className={clsx('pt-6', styles.wrapCenter)}>
@@ -29,7 +31,9 @@ export const ResetPasswordUI = ({
           className={clsx('pb-15', styles.form)}
           name="login"
           onSubmit={handleSubmit}
-          onInvalid={(event) => event.preventDefault()}
+          onInvalid={onInvalid}
+          onBlurCapture={onBlur}
+          onChange={onChange}
         >
           <div className="pb-6">
             <PasswordInput
@@ -38,8 +42,19 @@ export const ResetPasswordUI = ({
               name="password"
               required
               minLength={PASSWORD_MIN_LENGTH}
-              errorText={`Пароль должен содержать не менее ${PASSWORD_MIN_LENGTH} символов`}
+              errorText=""
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'reset-password-error' : undefined}
             />
+            {errors.password && (
+              <p
+                id="reset-password-error"
+                className={clsx(styles.error, 'text text_type_main-default')}
+                role="alert"
+              >
+                {errors.password}
+              </p>
+            )}
           </div>
           <div className="pb-6">
             <Input
@@ -49,8 +64,9 @@ export const ResetPasswordUI = ({
               value={token}
               name="token"
               required
-              error={false}
-              errorText=""
+              error={!!errors.token}
+              errorText={errors.token}
+              aria-invalid={!!errors.token}
               size="default"
             />
           </div>
