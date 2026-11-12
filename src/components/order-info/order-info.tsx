@@ -1,5 +1,11 @@
 import { NotFound404 } from '@/pages';
 import { selectIngredients } from '@/services/slices/ingredients/ingredientsSelectors';
+import {
+  selectCachedOrder,
+  selectOrderDetailsOrder,
+  selectOrderDetailsRequestedNumber,
+  selectOrderDetailsStatus,
+} from '@/services/slices/orderDetails/orderDetailsSelectors';
 import { fetchOrderData } from '@/services/slices/orderDetails/orderDetailsSlice';
 import { useDispatch, useSelector } from '@/services/store';
 import { Preloader, OrderInfoUI } from '@ui';
@@ -13,23 +19,15 @@ type OrderInfoProps = {
 };
 export const OrderInfo = ({ showNumber = false }: OrderInfoProps): React.JSX.Element => {
   const dispatch = useDispatch();
-  const requestStatus = useSelector((state) => state.orderDetails.status);
+  const requestStatus = useSelector(selectOrderDetailsStatus);
   const orderNumber = Number(useParams<{ number: string }>().number);
   const isOrderNumberValid = Number.isSafeInteger(orderNumber) && orderNumber > 0;
   const ingredients: TIngredient[] = useSelector(selectIngredients);
 
   const isProfileOrder = Boolean(useMatch('/profile/orders/:number'));
-  const cachedOrder = useSelector((state) => {
-    const sources = isProfileOrder
-      ? [state.profileOrders.orders, state.feed.orders]
-      : [state.feed.orders, state.profileOrders.orders];
-    return (
-      sources[0].find((order) => order.number === orderNumber) ??
-      sources[1].find((order) => order.number === orderNumber)
-    );
-  });
-  const fetchedOrder = useSelector((state) => state.orderDetails.order);
-  const requestedNumber = useSelector((state) => state.orderDetails.requestedNumber);
+  const cachedOrder = useSelector(selectCachedOrder(orderNumber, isProfileOrder));
+  const fetchedOrder = useSelector(selectOrderDetailsOrder);
+  const requestedNumber = useSelector(selectOrderDetailsRequestedNumber);
   const orderData =
     cachedOrder ?? (fetchedOrder?.number === orderNumber ? fetchedOrder : null);
   const hasCachedOrder = Boolean(cachedOrder);

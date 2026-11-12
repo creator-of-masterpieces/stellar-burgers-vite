@@ -1,3 +1,4 @@
+import { selectPasswordReset } from '@/services/slices/passwordReset/passwordResetSelectors';
 import {
   clearPasswordResetError,
   requestPasswordReset,
@@ -10,7 +11,7 @@ import { useNavigate, useLocation, type Location } from 'react-router-dom';
 export const ForgotPassword = (): React.JSX.Element => {
   const [email, setEmail] = useState('');
   const dispatch = useDispatch();
-  const { status, error } = useSelector((state) => state.passwordReset);
+  const { status, error } = useSelector(selectPasswordReset);
   const isLoading = status === 'pending';
 
   useEffect(() => {

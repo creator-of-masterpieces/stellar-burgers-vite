@@ -1,4 +1,8 @@
-import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
+import {
+  selectIsAuthChecked,
+  selectUser,
+  selectUserStatus,
+} from '@/services/slices/user/userSelectors';
 import { checkUser } from '@/services/slices/user/userSlice';
 import { useDispatch, useSelector } from '@/services/store';
 import { ORDER_NUMBER_MIN_LENGTH } from '@/utils/constants';
@@ -128,7 +132,7 @@ export const RouteComponent = (): React.JSX.Element => {
 
 const AuthCheck = (): React.JSX.Element => {
   const dispatch = useDispatch();
-  const status = useSelector((state) => state.user.status);
+  const status = useSelector(selectUserStatus);
 
   if (status !== 'rejected') {
     return <Preloader />;

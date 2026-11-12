@@ -1,3 +1,4 @@
+import { selectPasswordReset } from '@/services/slices/passwordReset/passwordResetSelectors';
 import {
   clearPasswordResetError,
   resetPassword,
@@ -14,7 +15,7 @@ export const ResetPassword = (): React.JSX.Element => {
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
   const dispatch = useDispatch();
-  const { status, error } = useSelector((state) => state.passwordReset);
+  const { status, error } = useSelector(selectPasswordReset);
   const isLoading = status === 'pending';
 
   useEffect(() => {

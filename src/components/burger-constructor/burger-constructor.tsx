@@ -1,7 +1,10 @@
 import { resetOrder, submitOrder } from '@/services/slices/constructor/constructorSlice';
 import {
+  selectConstructorItems,
   selectIsLoading,
   selectOrder,
+  selectOrderError,
+  selectOrderModalData,
 } from '@/services/slices/constructor/counstructorSelectors';
 import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
 import { useDispatch, useSelector } from '@/services/store';
@@ -9,23 +12,20 @@ import { BurgerConstructorUI } from '@ui';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import type { TConstructorIngredient, TConstructorState, TOrder } from '@utils-types';
+import type { TConstructorIngredient } from '@utils-types';
 
 export const BurgerConstructor = (): React.JSX.Element | null => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+
   const user = useSelector(selectUser);
   const isAuthChecked = useSelector(selectIsAuthChecked);
-  const constructorItems: TConstructorState = useSelector(
-    (state) => state.burgerConstructor
-  );
+  const constructorItems = useSelector(selectConstructorItems);
   const order = useSelector(selectOrder);
   const orderRequest = useSelector(selectIsLoading);
-  const orderModalData: TOrder | null = useSelector(
-    (state) => state.burgerConstructor.order
-  );
-  const orderError = useSelector((state) => state.burgerConstructor.error);
+  const orderModalData = useSelector(selectOrderModalData);
+  const orderError = useSelector(selectOrderError);
 
   const onOrderClick = (): void => {
     if (!constructorItems.bun || orderRequest || !order.length) return;

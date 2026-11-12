@@ -1,3 +1,4 @@
+import { selectProfileOrders } from '@/services/slices/profileOrders/profileOrdersSelectors';
 import { fetchProfileOrders } from '@/services/slices/profileOrders/profileOrdersSlice';
 import { useDispatch, useSelector } from '@/services/store';
 import { ProfileOrdersUI } from '@ui-pages';
@@ -7,7 +8,7 @@ const PROFILE_ORDERS_REFRESH_INTERVAL_MS = 10_000;
 
 export const ProfileOrders = (): React.JSX.Element => {
   const dispatch = useDispatch();
-  const { orders, status } = useSelector((state) => state.profileOrders);
+  const { orders, status } = useSelector(selectProfileOrders);
 
   const handleRetry = (): void => {
     void dispatch(fetchProfileOrders());
