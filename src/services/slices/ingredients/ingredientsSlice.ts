@@ -20,18 +20,12 @@ export const fetchIngredients = createAsyncThunk<
   TIngredient[],
   void,
   { state: RootState }
->(
-  'ingredients/fetchIngredients',
-  async () => {
-    return getIngredientsApi();
+>('ingredients/fetchIngredients', getIngredientsApi, {
+  condition: (_, { getState }) => {
+    const { status } = getState().ingredients;
+    return status !== 'pending' && status !== 'succeeded';
   },
-  {
-    condition: (_, { getState }) => {
-      const { status } = getState().ingredients;
-      return status !== 'pending' && status !== 'succeeded';
-    },
-  }
-);
+});
 
 export const ingredientsSlice = createSlice({
   name: 'ingredients',

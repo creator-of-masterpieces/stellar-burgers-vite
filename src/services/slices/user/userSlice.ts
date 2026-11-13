@@ -89,13 +89,8 @@ export const updateUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk('user/logoutUser', async () => {
   const token = localStorage.getItem('refreshToken');
-  try {
-    if (token) await logoutApi(token);
-  } catch {
-    // Failure to revoke the server session must not prevent local sign-out.
-  } finally {
-    clearTokens();
-  }
+  await logoutApi(token ?? '');
+  clearTokens();
 });
 
 export const userSlice = createSlice({

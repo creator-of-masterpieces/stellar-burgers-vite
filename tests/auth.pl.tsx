@@ -120,8 +120,12 @@ for (const failure of [
   'missing refresh token',
   'rejected refresh token',
   'network error',
+  'unsuccessful response',
 ] as const) {
-  test(`logout ends local session with ${failure}`, async ({ page, context }) => {
+  test(`logout preserves session with ${failure} and allows retry`, async ({
+    page,
+    context,
+  }) => {
     await context.addCookies([
       { name: 'accessToken', value: session.accessToken, url: 'http://localhost:4000' },
     ]);
@@ -131,12 +135,15 @@ for (const failure of [
     let logoutRequests = 0;
     await page.route('**/auth/logout', async (route) => {
       logoutRequests++;
+      expect(route.request().postDataJSON()).toEqual({
+        token: failure === 'missing refresh token' ? '' : session.refreshToken,
+      });
       if (failure === 'network error') {
         await route.abort('failed');
         return;
       }
       await route.fulfill({
-        status: 403,
+        status: failure === 'unsuccessful response' ? 200 : 403,
         json: { success: false, message: 'Token required' },
       });
     });
@@ -150,8 +157,50 @@ for (const failure of [
       );
     }
     await page.getByRole('button', { name: 'Выход', exact: true }).click();
+    const error = page.getByRole('alert');
+    if (failure === 'network error') {
+      await expect(error).toContainText('Failed to fetch');
+    } else {
+      await expect(error).toHaveText('Token required');
+    }
+    await expect(page).toHaveURL('/profile');
+    expect(logoutRequests).toBe(1);
+    expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBe(
+      failure === 'missing refresh token' ? null : session.refreshToken
+    );
+    expect(
+      (await context.cookies()).find((cookie) => cookie.name === 'accessToken')?.value
+    ).toBe(session.accessToken);
+    await expect(page.locator('input[name="name"]')).toHaveValue(user.name);
+    await expect(page.getByRole('link', { name: user.name, exact: true })).toBeVisible();
+
+    let finishLogout!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finishLogout = resolve;
+    });
+    await page.evaluate(
+      (token) => localStorage.setItem('refreshToken', token),
+      session.refreshToken
+    );
+    await page.route('**/auth/logout', async (route) => {
+      logoutRequests++;
+      expect(route.request().postDataJSON()).toEqual({ token: session.refreshToken });
+      await pending;
+      await route.fulfill({ json: { success: true } });
+    });
+    await page.getByRole('button', { name: 'Выход', exact: true }).click();
+    await expect.poll(() => logoutRequests).toBe(2);
+    await expect(error).toHaveCount(0);
+    await expect(page).toHaveURL('/profile');
+    expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBe(
+      session.refreshToken
+    );
+    expect(
+      (await context.cookies()).find((cookie) => cookie.name === 'accessToken')?.value
+    ).toBe(session.accessToken);
+    finishLogout();
     await expect(page).toHaveURL('/login');
-    expect(logoutRequests).toBe(failure === 'missing refresh token' ? 0 : 1);
+    expect(logoutRequests).toBe(2);
     expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBeNull();
     expect(
       (await context.cookies()).some((cookie) => cookie.name === 'accessToken')

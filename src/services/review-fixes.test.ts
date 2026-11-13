@@ -5,7 +5,6 @@ import {
 } from './slices/constructor/constructorSelectors';
 import {
   addIngredient,
-  clearConstructor,
   constructorReducer,
   moveIngredient,
   removeIngredient,
@@ -170,7 +169,10 @@ test('counters follow duplicate fillings, removal, bun replacement and clearing;
   expect(selectIngredientCounters(state)).toEqual({ bun: 2, filling: 1 });
   state = rootReducer(state, addIngredient({ ...bun, _id: 'other-bun' }));
   expect(selectIngredientCounters(state)).toEqual({ 'other-bun': 2, filling: 1 });
-  state = rootReducer(state, clearConstructor());
+  state = rootReducer(
+    state,
+    submitOrder.fulfilled(order, 'request', selectOrder(state))
+  );
   expect(selectIngredientCounters(state)).toEqual({});
   expect(selectOrder(state)).toEqual([]);
 });
