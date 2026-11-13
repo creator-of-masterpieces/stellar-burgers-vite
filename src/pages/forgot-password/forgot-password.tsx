@@ -6,7 +6,9 @@ import {
 import { useDispatch, useSelector } from '@/services/store';
 import { ForgotPasswordUI } from '@ui-pages';
 import { useEffect, useState, type SyntheticEvent } from 'react';
-import { useNavigate, useLocation, type Location } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+import type { AuthLocationState } from '@utils-types';
 
 export const ForgotPassword = (): React.JSX.Element => {
   const [email, setEmail] = useState('');
@@ -19,7 +21,7 @@ export const ForgotPassword = (): React.JSX.Element => {
   }, [dispatch]);
 
   const navigate = useNavigate();
-  const state = useLocation().state as { from?: Location } | null;
+  const state = useLocation().state as AuthLocationState | null;
 
   const handleSubmit = (e: SyntheticEvent): void => {
     e.preventDefault();

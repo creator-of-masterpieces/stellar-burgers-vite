@@ -1,4 +1,9 @@
 import type { SerializedError } from '@reduxjs/toolkit';
+import type { Location } from 'react-router-dom';
+
+export type AuthLocationState = {
+  from?: Location;
+};
 
 export type TIngredient = {
   _id: string;

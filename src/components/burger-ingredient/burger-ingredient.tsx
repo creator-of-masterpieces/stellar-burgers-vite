@@ -5,7 +5,6 @@ import { memo } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import type { TBurgerIngredientProps } from './type';
-import type { TIngredient } from '@/utils/types';
 
 export const BurgerIngredient = memo(function BurgerIngredient({
   ingredient,
@@ -14,7 +13,7 @@ export const BurgerIngredient = memo(function BurgerIngredient({
   const location = useLocation();
   const dispatch = useDispatch();
 
-  const handleAdd = (ingredient: TIngredient): void => {
+  const handleAdd = (): void => {
     dispatch(addIngredient(ingredient));
   };
 
@@ -23,7 +22,7 @@ export const BurgerIngredient = memo(function BurgerIngredient({
       ingredient={ingredient}
       count={count}
       locationState={{ background: location }}
-      handleAdd={() => handleAdd(ingredient)}
+      handleAdd={handleAdd}
     />
   );
 });

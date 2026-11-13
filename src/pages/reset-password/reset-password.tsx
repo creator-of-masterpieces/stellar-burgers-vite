@@ -7,11 +7,13 @@ import { useDispatch, useSelector } from '@/services/store';
 import { PASSWORD_MIN_LENGTH } from '@/utils/validation';
 import { ResetPasswordUI } from '@ui-pages';
 import { type SyntheticEvent, useEffect, useState } from 'react';
-import { useNavigate, useLocation, type Location } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+import type { AuthLocationState } from '@utils-types';
 
 export const ResetPassword = (): React.JSX.Element => {
   const navigate = useNavigate();
-  const state = useLocation().state as { from?: Location } | null;
+  const state = useLocation().state as AuthLocationState | null;
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
   const dispatch = useDispatch();

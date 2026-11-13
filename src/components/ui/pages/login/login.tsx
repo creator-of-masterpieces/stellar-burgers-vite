@@ -6,9 +6,10 @@ import {
   PasswordInput,
 } from '@krgaa/react-developer-burger-ui-components';
 import { clsx } from 'clsx';
-import { Link, useLocation, type Location } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import type { LoginUIProps } from './type';
+import type { AuthLocationState } from '@utils-types';
 
 import styles from '../common.module.css';
 
@@ -21,7 +22,7 @@ export const LoginUI = ({
   setPassword,
   isLoading = false,
 }: LoginUIProps): React.JSX.Element => {
-  const state = useLocation().state as { from?: Location } | null;
+  const state = useLocation().state as AuthLocationState | null;
   const { errors, onInvalid, onBlur, onChange } = useFormValidation();
   return (
     <main className={styles.container}>

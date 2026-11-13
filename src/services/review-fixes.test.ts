@@ -1,5 +1,9 @@
 import { rootReducer } from './rootReducer';
 import {
+  selectIngredientCounters,
+  selectOrder,
+} from './slices/constructor/constructorSelectors';
+import {
   addIngredient,
   clearConstructor,
   constructorReducer,
@@ -8,10 +12,6 @@ import {
   resetOrder,
   submitOrder,
 } from './slices/constructor/constructorSlice';
-import {
-  selectIngredientCounters,
-  selectOrder,
-} from './slices/constructor/counstructorSelectors';
 import { fetchIngredients } from './slices/ingredients/ingredientsSlice';
 import {
   fetchOrderData,

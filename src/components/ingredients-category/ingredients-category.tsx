@@ -1,4 +1,4 @@
-import { selectIngredientCounters } from '@/services/slices/constructor/counstructorSelectors';
+import { selectIngredientCounters } from '@/services/slices/constructor/constructorSelectors';
 import { useSelector } from '@/services/store';
 import { IngredientsCategoryUI } from '@ui';
 

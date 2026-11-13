@@ -1,3 +1,4 @@
+/* eslint css-modules/no-unused-class: ["warn", { markAsUsed: ["detailPageWrap", "detailHeader"] }] -- Используются в routes.tsx. */
 import {
   selectIngredients,
   selectStatus,

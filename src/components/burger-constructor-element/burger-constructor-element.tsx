@@ -7,7 +7,6 @@ import { BurgerConstructorElementUI } from '@ui';
 import { memo } from 'react';
 
 import type { BurgerConstructorElementProps } from './type';
-import type { TConstructorIngredient } from '@/utils/types';
 
 export const BurgerConstructorElement = memo(function BurgerConstructorElement({
   ingredient,
@@ -23,7 +22,7 @@ export const BurgerConstructorElement = memo(function BurgerConstructorElement({
     dispatch(moveIngredient({ fromIndex: index, toIndex: index - 1 }));
   };
 
-  const handleClose = (ingredient: TConstructorIngredient): void => {
+  const handleClose = (): void => {
     dispatch(removeIngredient(ingredient));
   };
 
@@ -34,7 +33,7 @@ export const BurgerConstructorElement = memo(function BurgerConstructorElement({
       totalItems={totalItems}
       handleMoveUp={handleMoveUp}
       handleMoveDown={handleMoveDown}
-      handleClose={() => handleClose(ingredient)}
+      handleClose={handleClose}
     />
   );
 });

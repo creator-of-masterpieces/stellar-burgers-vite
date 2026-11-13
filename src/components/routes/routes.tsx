@@ -1,3 +1,4 @@
+/* eslint css-modules/no-unused-class: ["warn", { markAsUsed: ["app", "message"] }] -- Используются в app.tsx. */
 import {
   selectIsAuthChecked,
   selectUser,
@@ -34,6 +35,9 @@ import { IngredientDetails } from '@components/ingredient-details';
 import { Modal } from '@components/modal';
 import { OrderInfo } from '@components/order-info';
 
+import type { AuthLocationState } from '@utils-types';
+
+import appStyles from '../app/app.module.css';
 import styles from './routes.module.css';
 
 type ModalLocationState = {
@@ -61,24 +65,34 @@ export const RouteComponent = (): React.JSX.Element => {
         <Route path="/" element={<ConstructorPage />} />
         <Route path="/feed" element={<Feed />} />
 
-        <Route element={<GuestRout />}>
+        <Route element={<GuestRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
         </Route>
 
-        <Route element={<ProtectedRout />}>
+        <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/orders" element={<ProfileOrders />} />
         </Route>
 
         <Route path="/feed/:number" element={<OrderInfo showNumber />} />
 
-        <Route element={<ProtectedRout />}>
+        <Route element={<ProtectedRoute />}>
           <Route path="/profile/orders/:number" element={<OrderInfo showNumber />} />
         </Route>
-        <Route path="/ingredients/:id" element={<IngredientDetails />} />
+        <Route
+          path="/ingredients/:id"
+          element={
+            <div className={appStyles.detailPageWrap}>
+              <h1 className={`${appStyles.detailHeader} text text_type_main-large`}>
+                Детали ингредиента
+              </h1>
+              <IngredientDetails />
+            </div>
+          }
+        />
         <Route path="*" element={<NotFound404 />} />
       </Routes>
 
@@ -87,7 +101,7 @@ export const RouteComponent = (): React.JSX.Element => {
           <Route
             path="/ingredients/:id"
             element={
-              <Modal title="Информация о ингредиенте" onClose={handleClose}>
+              <Modal title="Детали ингредиента" onClose={handleClose}>
                 <IngredientDetails />
               </Modal>
             }
@@ -107,7 +121,7 @@ export const RouteComponent = (): React.JSX.Element => {
               </Modal>
             }
           />
-          <Route element={<ProtectedRout />}>
+          <Route element={<ProtectedRoute />}>
             <Route
               path="/profile/orders/:number"
               element={
@@ -155,11 +169,11 @@ const AuthCheck = (): React.JSX.Element => {
   );
 };
 
-const GuestRout = (): React.JSX.Element => {
+const GuestRoute = (): React.JSX.Element => {
   const user = useSelector(selectUser);
   const isAuthChecked = useSelector(selectIsAuthChecked);
   const location = useLocation();
-  const state = location.state as { from?: Location } | null;
+  const state = location.state as AuthLocationState | null;
 
   if (!isAuthChecked) {
     return <AuthCheck />;
@@ -170,7 +184,7 @@ const GuestRout = (): React.JSX.Element => {
   );
 };
 
-const ProtectedRout = (): React.JSX.Element => {
+const ProtectedRoute = (): React.JSX.Element => {
   const user = useSelector(selectUser);
   const isAuthChecked = useSelector(selectIsAuthChecked);
   const location = useLocation();
@@ -180,6 +194,6 @@ const ProtectedRout = (): React.JSX.Element => {
   }
   // prettier-ignore
   return (
-    user ? <Outlet /> : <Navigate to="/login" state={{ from: location }} replace />
+    user ? <Outlet /> : <Navigate to="/login" state={{ from: location } satisfies AuthLocationState} replace />
   );
 };

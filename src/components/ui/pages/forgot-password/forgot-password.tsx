@@ -1,8 +1,9 @@
 import { Input, Button } from '@krgaa/react-developer-burger-ui-components';
 import { clsx } from 'clsx';
-import { Link, useLocation, type Location } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import type { PageUIProps } from '@ui-pages/common-type';
+import type { AuthLocationState } from '@utils-types';
 
 import styles from '../common.module.css';
 
@@ -13,7 +14,7 @@ export const ForgotPasswordUI = ({
   handleSubmit,
   isLoading = false,
 }: PageUIProps): React.JSX.Element => {
-  const state = useLocation().state as { from?: Location } | null;
+  const state = useLocation().state as AuthLocationState | null;
   return (
     <main className={styles.container}>
       <div className={clsx('pt-6', styles.wrapCenter)}>

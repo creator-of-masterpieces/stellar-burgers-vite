@@ -1,18 +1,18 @@
-import { resetOrder, submitOrder } from '@/services/slices/constructor/constructorSlice';
 import {
   selectConstructorItems,
   selectIsLoading,
   selectOrder,
   selectOrderError,
   selectOrderModalData,
-} from '@/services/slices/constructor/counstructorSelectors';
+} from '@/services/slices/constructor/constructorSelectors';
+import { resetOrder, submitOrder } from '@/services/slices/constructor/constructorSlice';
 import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
 import { useDispatch, useSelector } from '@/services/store';
 import { BurgerConstructorUI } from '@ui';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import type { TConstructorIngredient } from '@utils-types';
+import type { AuthLocationState, TConstructorIngredient } from '@utils-types';
 
 export const BurgerConstructor = (): React.JSX.Element | null => {
   const dispatch = useDispatch();
@@ -31,7 +31,7 @@ export const BurgerConstructor = (): React.JSX.Element | null => {
     if (!constructorItems.bun || orderRequest || !order.length) return;
     if (!isAuthChecked) return;
     if (!user) {
-      void navigate('/login', { state: { from: location } });
+      void navigate('/login', { state: { from: location } satisfies AuthLocationState });
       return;
     }
     void dispatch(submitOrder(order));
