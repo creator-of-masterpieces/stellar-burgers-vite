@@ -1,5 +1,6 @@
 import { ProfileMenu, OrdersList } from '@components';
 import { Button } from '@krgaa/react-developer-burger-ui-components';
+import { Preloader } from '@ui';
 import { clsx } from 'clsx';
 
 import type { ProfileOrdersUIProps } from './type';
@@ -17,9 +18,9 @@ export const ProfileOrdersUI = ({
     </div>
     <div className={clsx('mt-10', styles.orders)}>
       {!orders.length && (status === 'idle' || status === 'pending') && (
-        <p role="status" className="text text_type_main-default p-6">
-          Загружаем историю заказов…
-        </p>
+        <div role="status" aria-label="Загрузка истории заказов" className="p-6">
+          <Preloader />
+        </div>
       )}
       {status === 'rejected' && (
         <div className="p-6">

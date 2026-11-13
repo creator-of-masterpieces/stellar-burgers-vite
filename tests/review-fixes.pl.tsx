@@ -81,12 +81,25 @@ test('feed keeps cards and totals during refresh and failure, then retries succe
     const total = page.getByText('12345', { exact: true });
     await expect(card).toBeVisible();
     await expect(total).toBeVisible();
+    const content = page.locator('main > div').last();
+    const contentGap = (): Promise<number> =>
+      content.evaluate((element) => {
+        const title = element.previousElementSibling!;
+        return (
+          element.getBoundingClientRect().top - title.getBoundingClientRect().bottom
+        );
+      });
+    await expect.poll(contentGap).toBe(20);
+    const initialCardTop = (await card.boundingBox())!.y;
+    const initialTotalTop = (await total.boundingBox())!.y;
     fail = true;
     await button.click();
-    await expect(page.getByRole('status')).toContainText('Обновляем ленту заказов');
     await expect(button).toBeDisabled();
+    await expect(page.getByRole('status')).toHaveCount(0);
     await expect(card).toBeVisible();
     await expect(total).toBeVisible();
+    expect((await card.boundingBox())!.y).toBe(initialCardTop);
+    expect((await total.boundingBox())!.y).toBe(initialTotalTop);
     finishRefresh();
     await expect(page.getByRole('alert')).toContainText('Не удалось загрузить ленту');
     await expect(card).toBeVisible();
@@ -97,6 +110,7 @@ test('feed keeps cards and totals during refresh and failure, then retries succe
     await expect(page.getByRole('alert')).toHaveCount(0);
     await expect(page.getByRole('status')).toHaveCount(0);
     await expect(card).toBeVisible();
+    await expect.poll(contentGap).toBe(20);
   } finally {
     finishRefresh();
   }

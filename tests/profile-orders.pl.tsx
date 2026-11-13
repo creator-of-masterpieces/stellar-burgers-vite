@@ -67,7 +67,9 @@ test('loads personal orders, sorts newest first and opens details over history',
   );
 
   await page.goto('/profile/orders');
-  await expect(page.getByRole('status')).toHaveText('Загружаем историю заказов…');
+  await expect(
+    page.getByRole('status', { name: 'Загрузка истории заказов' })
+  ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'История заказов', exact: true })
   ).toBeVisible();

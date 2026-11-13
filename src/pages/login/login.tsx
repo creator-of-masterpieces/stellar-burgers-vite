@@ -7,8 +7,12 @@ import { useDispatch, useSelector } from '@/services/store';
 import { PASSWORD_MIN_LENGTH } from '@/utils/validation';
 import { LoginUI } from '@ui-pages';
 import { type SyntheticEvent, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+
+import type { AuthLocationState } from '@utils-types';
 
 export const Login = (): React.JSX.Element => {
+  const state = useLocation().state as AuthLocationState | null;
   const dispatch = useDispatch();
   const isLoading = useSelector(selectIsUserLoading);
   const error = useSelector(selectUserError);
@@ -27,6 +31,7 @@ export const Login = (): React.JSX.Element => {
 
   return (
     <LoginUI
+      locationState={state}
       errorText={error?.message}
       isLoading={isLoading}
       email={email}

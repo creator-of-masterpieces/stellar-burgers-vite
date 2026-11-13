@@ -15,10 +15,6 @@
   max-width: 1240px;
 }
 
-.statusArea {
-  min-height: 74px;
-}
-
 .main {
   display: flex;
   justify-content: space-between;

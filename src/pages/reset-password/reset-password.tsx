@@ -42,6 +42,7 @@ export const ResetPassword = (): React.JSX.Element => {
 
   return (
     <ResetPasswordUI
+      locationState={state}
       errorText={error?.message}
       isLoading={isLoading}
       password={password}

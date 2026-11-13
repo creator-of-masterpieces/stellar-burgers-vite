@@ -6,10 +6,9 @@ import {
   PasswordInput,
 } from '@krgaa/react-developer-burger-ui-components';
 import { clsx } from 'clsx';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import type { RegisterUIProps } from './type';
-import type { AuthLocationState } from '@utils-types';
 
 import styles from '../common.module.css';
 
@@ -23,8 +22,8 @@ export const RegisterUI = ({
   userName,
   setUserName,
   isLoading = false,
+  locationState,
 }: RegisterUIProps): React.JSX.Element => {
-  const state = useLocation().state as AuthLocationState | null;
   const { errors, onInvalid, onBlur, onChange } = useFormValidation();
   return (
     <main className={styles.container}>
@@ -109,7 +108,7 @@ export const RegisterUI = ({
         </form>
         <div className={clsx(styles.question, 'text text_type_main-default pb-6')}>
           Уже зарегистрированы?
-          <Link to="/login" state={state} className={clsx('pl-2', styles.link)}>
+          <Link to="/login" state={locationState} className={clsx('pl-2', styles.link)}>
             Войти
           </Link>
         </div>
