@@ -1,3 +1,10 @@
+import type { SerializedError } from '@reduxjs/toolkit';
+import type { Location } from 'react-router-dom';
+
+export type AuthLocationState = {
+  from?: Location;
+};
+
 export type TIngredient = {
   _id: string;
   name: string;
@@ -44,10 +51,10 @@ export type TConstructorState = {
   ingredients: TConstructorIngredient[];
 };
 
-export type TFeedState = {
-  orders: TOrder[];
-  total: number;
-  totalToday: number;
-  isLoading: boolean;
-  error: unknown;
+export type TFeedState = TOrdersData & {
+  status: FetchStatus;
+  error: TRequestError;
 };
+
+export type FetchStatus = 'idle' | 'pending' | 'succeeded' | 'rejected';
+export type TRequestError = SerializedError | null;

@@ -1,12 +1,22 @@
-import { Preloader, IngredientDetailsUI } from '@ui';
+import { NotFound404 } from '@/pages';
+import { selectIngredient } from '@/services/slices/ingredients/ingredientsSelectors';
+import { useSelector } from '@/services/store';
+import { IngredientDetailsUI } from '@ui';
+import { useParams } from 'react-router-dom';
 
 export const IngredientDetails = (): React.JSX.Element => {
-  // TODO: Взять переменную из стора
-  const ingredientData = null;
+  const ingredientId = useParams<{ id: string }>().id;
+  const ingredientData = useSelector(selectIngredient(ingredientId));
 
   if (!ingredientData) {
-    return <Preloader />;
+    // prettier-ignore
+    return (
+      <NotFound404 />
+    );
   }
 
-  return <IngredientDetailsUI ingredientData={ingredientData} />;
+  // prettier-ignore
+  return (
+    <IngredientDetailsUI ingredientData={ingredientData} />
+  );
 };

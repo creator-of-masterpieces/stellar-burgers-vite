@@ -5,6 +5,7 @@ import {
   CurrencyIcon,
 } from '@krgaa/react-developer-burger-ui-components';
 import { Preloader, OrderDetailsUI } from '@ui';
+import { clsx } from 'clsx';
 
 import type { BurgerConstructorUIProps } from './type';
 import type { TConstructorIngredient } from '@utils-types';
@@ -16,6 +17,7 @@ export const BurgerConstructorUI = ({
   orderRequest,
   price,
   orderModalData,
+  errorText,
   onOrderClick,
   closeOrderModal,
 }: BurgerConstructorUIProps): React.JSX.Element => (
@@ -81,7 +83,14 @@ export const BurgerConstructorUI = ({
         Оформить заказ
       </Button>
     </div>
-    {/* Прелоадер в данном месте в "Можно лучше" */}
+    {errorText && (
+      <p
+        role="alert"
+        className={clsx('text text_type_main-default mt-4 mr-4', styles.error)}
+      >
+        {errorText}
+      </p>
+    )}
     {orderRequest && (
       <Modal onClose={closeOrderModal} title={'Оформляем заказ...'}>
         <Preloader />

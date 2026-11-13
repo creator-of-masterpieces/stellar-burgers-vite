@@ -1,8 +1,6 @@
-import type { SerializedError } from '@reduxjs/toolkit';
-import type { TIngredient } from '@utils-types';
+import type { FetchStatus, TIngredient } from '@utils-types';
 
 export type AppContentProps = {
   ingredients: TIngredient[];
-  isLoading: boolean;
-  error: SerializedError | null;
+  status: FetchStatus;
 };

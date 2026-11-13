@@ -1,26 +1,36 @@
+import {
+  selectIsUserLoading,
+  selectUser,
+  selectUserError,
+} from '@/services/slices/user/userSelectors';
+import { clearUserError, updateUser } from '@/services/slices/user/userSlice';
+import { useDispatch, useSelector } from '@/services/store';
 import { ProfileUI } from '@ui-pages';
 import { type SyntheticEvent, useEffect, useState } from 'react';
 
 export const Profile = (): React.JSX.Element => {
-  /** TODO: Взять переменную из стора */
-  const user = {
-    name: '',
-    email: '',
-  };
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  const isLoading = useSelector(selectIsUserLoading);
+  const error = useSelector(selectUserError);
 
   const [formValue, setFormValue] = useState({
-    name: user.name,
-    email: user.email,
+    name: user?.name ?? '',
+    email: user?.email ?? '',
     password: '',
   });
 
   useEffect(() => {
-    setFormValue((prevState) => ({
-      ...prevState,
-      name: user?.name || '',
-      email: user?.email || '',
-    }));
+    setFormValue({
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      password: '',
+    });
   }, [user]);
+
+  useEffect(() => {
+    dispatch(clearUserError());
+  }, [dispatch]);
 
   const isFormChanged =
     formValue.name !== user?.name ||
@@ -29,13 +39,16 @@ export const Profile = (): React.JSX.Element => {
 
   const handleSubmit = (e: SyntheticEvent): void => {
     e.preventDefault();
+    if (isLoading || !isFormChanged) return;
+    const { name, email, password } = formValue;
+    void dispatch(updateUser({ name, email, ...(password ? { password } : {}) }));
   };
 
   const handleCancel = (e: SyntheticEvent): void => {
     e.preventDefault();
     setFormValue({
-      name: user.name,
-      email: user.email,
+      name: user?.name ?? '',
+      email: user?.email ?? '',
       password: '',
     });
   };
@@ -51,6 +64,8 @@ export const Profile = (): React.JSX.Element => {
     <ProfileUI
       formValue={formValue}
       isFormChanged={isFormChanged}
+      isLoading={isLoading}
+      updateUserError={error?.message}
       handleCancel={handleCancel}
       handleSubmit={handleSubmit}
       handleInputChange={handleInputChange}

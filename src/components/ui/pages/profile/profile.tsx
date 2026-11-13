@@ -8,6 +8,7 @@ import styles from './profile.module.css';
 export const ProfileUI = ({
   formValue,
   isFormChanged,
+  isLoading = false,
   updateUserError,
   handleSubmit,
   handleCancel,
@@ -68,8 +69,8 @@ export const ProfileUI = ({
             >
               Отменить
             </Button>
-            <Button type="primary" size="medium" htmlType="submit">
-              Сохранить
+            <Button type="primary" size="medium" htmlType="submit" disabled={isLoading}>
+              {isLoading ? 'Сохраняем…' : 'Сохранить'}
             </Button>
           </div>
         )}

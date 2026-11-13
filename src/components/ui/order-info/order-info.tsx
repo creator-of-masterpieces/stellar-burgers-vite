@@ -1,8 +1,10 @@
+import { ORDER_NUMBER_MIN_LENGTH } from '@/utils/constants';
 import { OrderStatus } from '@components';
 import {
   CurrencyIcon,
   FormattedDate,
 } from '@krgaa/react-developer-burger-ui-components';
+import { clsx } from 'clsx';
 import { memo } from 'react';
 
 import type { OrderInfoUIProps } from './type';
@@ -11,9 +13,15 @@ import styles from './order-info.module.css';
 
 export const OrderInfoUI = memo(function OrderInfoUI({
   orderInfo,
+  showNumber = false,
 }: OrderInfoUIProps): React.JSX.Element {
   return (
     <div className={styles.wrap}>
+      {showNumber && (
+        <p className={clsx('text text_type_digits-default mt-10', styles.number)}>
+          #{String(orderInfo.number).padStart(ORDER_NUMBER_MIN_LENGTH, '0')}
+        </p>
+      )}
       <h3 className={`text text_type_main-medium  pb-3 pt-10 ${styles.header}`}>
         {orderInfo.name}
       </h3>

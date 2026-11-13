@@ -1,0 +1,540 @@
+﻿import { expect, test } from '@playwright/test';
+
+import type { Page } from '@playwright/test';
+
+const user = { name: 'Проверка', email: 'review@example.com' };
+const session = {
+  success: true,
+  user,
+  accessToken: 'Bearer review',
+  refreshToken: 'review-refresh',
+};
+const image = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+const bun = {
+  _id: 'bun-one',
+  name: 'Первая булка',
+  type: 'bun',
+  price: 100,
+  proteins: 1,
+  fat: 1,
+  carbohydrates: 1,
+  calories: 1,
+  image,
+  image_large: image,
+  image_mobile: image,
+};
+const otherBun = { ...bun, _id: 'bun-two', name: 'Вторая булка' };
+const filling = { ...bun, _id: 'filling', name: 'Начинка', type: 'main' };
+const order = {
+  _id: 'order',
+  number: 201,
+  name: 'Обновляемый заказ',
+  status: 'pending',
+  ingredients: [bun._id, filling._id, bun._id],
+  createdAt: '2026-11-01T12:00:00.000Z',
+  updatedAt: '2026-11-01T12:00:00.000Z',
+};
+const authenticate = async (page: Page): Promise<void> => {
+  await page
+    .context()
+    .addCookies([
+      { name: 'accessToken', value: session.accessToken, url: 'http://localhost:4000' },
+    ]);
+  await page.route('**/auth/user', (route) =>
+    route.fulfill({ json: { success: true, user } })
+  );
+};
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/ingredients', (route) =>
+    route.fulfill({ json: { success: true, data: [bun, otherBun, filling] } })
+  );
+  await page.route('**/orders/all', (route) =>
+    route.fulfill({
+      json: { success: true, orders: [order], total: 12345, totalToday: 42 },
+    })
+  );
+});
+
+test('feed keeps cards and totals during refresh and failure, then retries successfully', async ({
+  page,
+}) => {
+  let fail = false;
+  let finishRefresh!: () => void;
+  const refresh = new Promise<void>((resolve) => {
+    finishRefresh = resolve;
+  });
+  await page.route('**/orders/all', async (route) => {
+    if (fail) {
+      await refresh;
+      await route.fulfill({ status: 500, json: { success: false } });
+      return;
+    }
+    await route.fulfill({
+      json: { success: true, orders: [order], total: 12345, totalToday: 42 },
+    });
+  });
+  try {
+    await page.goto('/feed');
+    const card = page.locator('main a[href="/feed/201"]');
+    const button = page.getByRole('button', { name: 'Обновить', exact: true });
+    const total = page.getByText('12345', { exact: true });
+    await expect(card).toBeVisible();
+    await expect(total).toBeVisible();
+    const content = page.locator('main > div').last();
+    const contentGap = (): Promise<number> =>
+      content.evaluate((element) => {
+        const title = element.previousElementSibling!;
+        return (
+          element.getBoundingClientRect().top - title.getBoundingClientRect().bottom
+        );
+      });
+    await expect.poll(contentGap).toBe(20);
+    const initialCardTop = (await card.boundingBox())!.y;
+    const initialTotalTop = (await total.boundingBox())!.y;
+    fail = true;
+    await button.click();
+    await expect(button).toBeDisabled();
+    await expect(page.getByRole('status')).toHaveCount(0);
+    await expect(card).toBeVisible();
+    await expect(total).toBeVisible();
+    expect((await card.boundingBox())!.y).toBe(initialCardTop);
+    expect((await total.boundingBox())!.y).toBe(initialTotalTop);
+    finishRefresh();
+    await expect(page.getByRole('alert')).toContainText('Не удалось загрузить ленту');
+    await expect(card).toBeVisible();
+    await expect(total).toBeVisible();
+    await expect(button).toBeEnabled();
+    fail = false;
+    await button.click();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.getByRole('status')).toHaveCount(0);
+    await expect(card).toBeVisible();
+    await expect.poll(contentGap).toBe(20);
+  } finally {
+    finishRefresh();
+  }
+});
+
+test('feed allows retry after initial failure and refresh after an empty response', async ({
+  page,
+}) => {
+  let fail = true;
+  let empty = true;
+  await page.route('**/orders/all', (route) =>
+    fail
+      ? route.fulfill({ status: 500, json: { success: false } })
+      : route.fulfill({
+          json: {
+            success: true,
+            orders: empty ? [] : [order],
+            total: empty ? 0 : 1,
+            totalToday: empty ? 0 : 1,
+          },
+        })
+  );
+  await page.goto('/feed');
+  await expect(page.getByRole('alert')).toContainText('Не удалось загрузить ленту');
+  const button = page.getByRole('button', { name: 'Обновить', exact: true });
+  fail = false;
+  await button.click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('Заказов пока нет.', { exact: true })).toBeVisible();
+  await expect(button).toBeEnabled();
+  empty = false;
+  await button.click();
+  await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
+  await expect(page.getByText('Заказов пока нет.', { exact: true })).toHaveCount(0);
+});
+
+test('StrictMode loads the feed once and allows a later manual refresh', async ({
+  page,
+}) => {
+  let requests = 0;
+  let finishRequest!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finishRequest = resolve;
+  });
+  await page.route('**/orders/all', async (route) => {
+    requests++;
+    await pending;
+    await route.fulfill({
+      json: { success: true, orders: [order], total: 12345, totalToday: 42 },
+    });
+  });
+  try {
+    await page.goto('/feed');
+    const button = page.getByRole('button', { name: 'Обновить', exact: true });
+    await expect(button).toBeDisabled();
+    finishRequest();
+    await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
+    await expect(button).toBeEnabled();
+    expect(requests).toBe(1);
+    await button.click();
+    await expect(button).toBeEnabled();
+    expect(requests).toBe(2);
+  } finally {
+    finishRequest();
+  }
+});
+
+for (const previouslyOpened of [false, true]) {
+  test(`successful order waits for the next feed opening to load fresh data (previously opened: ${previouslyOpened})`, async ({
+    page,
+  }) => {
+    await authenticate(page);
+    const newOrder = { ...order, _id: 'new-order', number: 202, name: 'Новый заказ' };
+    let created = false;
+    let feedRequests = 0;
+    await page.route('**/orders/all', async (route) => {
+      feedRequests++;
+      await route.fulfill({
+        json: {
+          success: true,
+          orders: created ? [newOrder, order] : [order],
+          total: created ? 12346 : 12345,
+          totalToday: created ? 43 : 42,
+        },
+      });
+    });
+    await page.route('**/orders', async (route) => {
+      expect(route.request().method()).toBe('POST');
+      created = true;
+      await route.fulfill({
+        json: { success: true, order: newOrder, name: newOrder.name },
+      });
+    });
+    if (previouslyOpened) {
+      await page.goto('/feed');
+      await expect(page.locator('main a[href="/feed/201"]')).toBeVisible();
+      await page.getByRole('link', { name: 'Конструктор', exact: true }).click();
+    } else {
+      await page.goto('/');
+    }
+    for (const id of [bun._id, filling._id]) {
+      await page
+        .locator(`a[href="/ingredients/${id}"]`)
+        .locator('..')
+        .getByRole('button', { name: 'Добавить' })
+        .click();
+    }
+    await page.getByRole('button', { name: 'Оформить заказ', exact: true }).click();
+    await expect(page.locator('#modals')).toContainText('202');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#modals')).toBeEmpty();
+    expect(feedRequests).toBe(previouslyOpened ? 1 : 0);
+    await page.getByRole('link', { name: 'Лента заказов', exact: true }).click();
+    await expect(page.locator('main a[href="/feed/202"]')).toContainText(newOrder.name);
+    await expect(page.getByText('12346', { exact: true })).toBeVisible();
+    await expect(page.getByText('43', { exact: true })).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: 'Обновить', exact: true })
+    ).toBeEnabled();
+    expect(feedRequests).toBe(previouslyOpened ? 2 : 1);
+  });
+}
+
+test('StrictMode loads the catalog once and navigation reuses it', async ({ page }) => {
+  let requests = 0;
+  let finishRequest!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finishRequest = resolve;
+  });
+  await page.route('**/ingredients', async (route) => {
+    requests++;
+    await pending;
+    await route.fulfill({ json: { success: true, data: [bun, otherBun, filling] } });
+  });
+  try {
+    await page.goto('/');
+    await expect.poll(() => requests).toBe(1);
+    finishRequest();
+    const card = page.locator('a[href="/ingredients/bun-one"]');
+    await expect(card).toBeVisible();
+    await card.click();
+    await expect(page.locator('#modals')).toContainText(bun.name);
+    await page.keyboard.press('Escape');
+    await page.getByRole('link', { name: 'Личный кабинет', exact: true }).click();
+    await expect(page).toHaveURL('/login');
+    await page.getByRole('link', { name: 'Конструктор', exact: true }).click();
+    await expect(card).toBeVisible();
+    expect(requests).toBe(1);
+  } finally {
+    finishRequest();
+  }
+});
+
+test('failed order shows an error, preserves the burger and allows retry with the same ingredients', async ({
+  page,
+}) => {
+  await authenticate(page);
+  const payloads: unknown[] = [];
+  let finishRetry!: () => void;
+  const retry = new Promise<void>((resolve) => {
+    finishRetry = resolve;
+  });
+  await page.route(/\/api\/orders$/, async (route) => {
+    expect(route.request().method()).toBe('POST');
+    payloads.push(route.request().postDataJSON());
+    if (payloads.length === 1) {
+      await route.fulfill({
+        status: 500,
+        json: { success: false, message: 'Internal server error' },
+      });
+      return;
+    }
+    await retry;
+    await route.fulfill({ json: { success: true, order, name: order.name } });
+  });
+  try {
+    await page.goto('/');
+    await page
+      .locator('a[href="/ingredients/bun-one"]')
+      .locator('..')
+      .getByRole('button', { name: 'Добавить' })
+      .click();
+    await page
+      .locator('a[href="/ingredients/filling"]')
+      .locator('..')
+      .getByRole('button', { name: 'Добавить' })
+      .click();
+    const submit = page.getByRole('button', { name: 'Оформить заказ', exact: true });
+    await submit.click();
+    await expect(page.getByRole('alert')).toHaveText(
+      'Не удалось оформить заказ. Попробуйте ещё раз.'
+    );
+    await expect(page.locator('#modals')).toBeEmpty();
+    await expect(page.getByTestId('constructor-bun-1')).toContainText(bun.name);
+    await expect(page.getByTestId('constructor-bun-2')).toContainText(bun.name);
+    await expect(page.getByTestId('constructor-ingredients')).toContainText(
+      filling.name
+    );
+    await expect(page.getByTestId('order-summ')).toContainText('300');
+    await submit.click();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.locator('#modals')).toContainText('Оформляем заказ');
+    await expect.poll(() => payloads.length).toBe(2);
+    const expectedPayload = { ingredients: [bun._id, filling._id, bun._id] };
+    expect(payloads).toEqual([expectedPayload, expectedPayload]);
+    finishRetry();
+    await expect(page.locator('#modals')).toContainText('201');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await expect(page.getByTestId('constructor-ingredients')).toContainText(
+      'Выберите начинку'
+    );
+  } finally {
+    finishRetry();
+  }
+});
+
+test('ingredient counters track additions, removal, bun replacement and successful order', async ({
+  page,
+}) => {
+  await authenticate(page);
+  await page.route(/\/api\/orders$/, (route) =>
+    route.fulfill({ json: { success: true, order, name: order.name } })
+  );
+  await page.goto('/');
+  const first = page.locator('a[href="/ingredients/bun-one"]').locator('..');
+  const second = page.locator('a[href="/ingredients/bun-two"]').locator('..');
+  const main = page.locator('a[href="/ingredients/filling"]').locator('..');
+  await first.getByRole('button', { name: 'Добавить' }).click();
+  await main.getByRole('button', { name: 'Добавить' }).click();
+  await main.getByRole('button', { name: 'Добавить' }).click();
+  await expect(first.locator('.counter__num')).toHaveText('2');
+  await expect(main.locator('.counter__num')).toHaveText('2');
+  await page
+    .getByTestId('constructor-ingredients')
+    .locator('.constructor-element__action')
+    .first()
+    .click();
+  await expect(main.locator('.counter__num')).toHaveText('1');
+  await second.getByRole('button', { name: 'Добавить' }).click();
+  await expect(first.locator('.counter__num')).toHaveCount(0);
+  await expect(second.locator('.counter__num')).toHaveText('2');
+  await page.getByRole('button', { name: 'Оформить заказ' }).click();
+  await expect(page.locator('#modals')).toContainText('201');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.counter__num')).toHaveCount(0);
+});
+
+test('constructor stays highlighted on ingredient modal and direct detail page; overlay blocks counter clicks', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const card = page.locator('a[href="/ingredients/bun-one"]');
+  await card.locator('..').getByRole('button', { name: 'Добавить' }).click();
+  const header = page.getByRole('link', { name: 'Конструктор', exact: true });
+  const activeClass = await header.getAttribute('class');
+  const iconFill = await header.locator('svg').getAttribute('fill');
+  await card.click();
+  await expect(page).toHaveURL('/ingredients/bun-one');
+  await expect(header).toHaveAttribute('class', activeClass!);
+  await expect(header.locator('svg')).toHaveAttribute('fill', iconFill!);
+  await expect(page.locator('#root')).toHaveAttribute('inert', '');
+  const counter = await card.locator('.counter__num').boundingBox();
+  expect(counter).not.toBeNull();
+  const point = {
+    x: counter!.x + counter!.width / 2,
+    y: counter!.y + counter!.height / 2,
+  };
+  expect(
+    await page.evaluate(
+      ({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('#modals')),
+      point
+    )
+  ).toBe(true);
+  await page.mouse.click(point.x, point.y);
+  await expect(card.locator('.counter__num')).toHaveText('2');
+  await page.getByTestId('modal-overlay').click({ position: { x: 5, y: 5 } });
+  await expect(page).toHaveURL('/');
+  await expect(page.locator('#modals')).toBeEmpty();
+  await expect(page.locator('#root')).not.toHaveAttribute('inert', '');
+  await page.goto('/ingredients/bun-one');
+  await expect(header).toHaveAttribute('class', activeClass!);
+  await expect(header.locator('svg')).toHaveAttribute('fill', iconFill!);
+});
+
+test('registration preserves requested history URL including search and hash', async ({
+  page,
+}) => {
+  await page.route('**/auth/register', (route) => route.fulfill({ json: session }));
+  await page.route(/\/api\/orders$/, (route) =>
+    route.fulfill({ json: { success: true, orders: [] } })
+  );
+  await page.goto('/profile/orders?source=registration#history');
+  await expect(page).toHaveURL('/login');
+  await page.getByRole('link', { name: 'Зарегистрироваться' }).click();
+  await page.locator('input[name="name"]').fill(user.name);
+  await page.locator('input[name="email"]').fill(user.email);
+  await page.locator('input[name="password"]').fill('123456');
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
+  await expect(page).toHaveURL('/profile/orders?source=registration#history');
+  await expect(page.getByText('У вас пока нет заказов.', { exact: true })).toBeVisible();
+});
+
+test('history loads once per opening and reuses the cached order in its modal', async ({
+  page,
+}) => {
+  await authenticate(page);
+  await page.clock.install();
+  let requests = 0;
+  let detailRequests = 0;
+  await page.route(/\/api\/orders$/, async (route) => {
+    requests++;
+    await route.fulfill({
+      json: {
+        success: true,
+        orders: [{ ...order, status: requests > 1 ? 'done' : 'pending' }],
+      },
+    });
+  });
+  await page.route(/\/api\/orders\/201$/, (route) => {
+    detailRequests++;
+    return route.fulfill({ json: { success: true, orders: [order] } });
+  });
+  await page.goto('/profile/orders');
+  const card = page.locator('main a[href="/profile/orders/201"]');
+  await expect(card).toContainText('Готовится');
+  await card.click();
+  await expect(page.locator('#modals')).toContainText('Готовится');
+  expect(detailRequests).toBe(0);
+  await page.clock.fastForward(35_000);
+  expect(requests).toBe(1);
+  await expect(card).toHaveCount(1);
+  await expect(page.getByRole('status')).toHaveCount(0);
+  await expect(page.locator('#modals')).toContainText('Готовится');
+  await page.keyboard.press('Escape');
+  await expect(card).toContainText('Готовится');
+  await page.getByRole('link', { name: 'Конструктор', exact: true }).click();
+  await expect(page).toHaveURL('/');
+  await expect(page.getByTestId('constructor')).toBeVisible();
+  const requestsAfterLeaving = requests;
+  await page.clock.fastForward(30_000);
+  expect(requests).toBe(requestsAfterLeaving);
+  await page.getByRole('link', { name: user.name, exact: true }).click();
+  await page.getByRole('link', { name: 'История заказов', exact: true }).click();
+  await expect(card).toContainText('Выполнен');
+  expect(requests).toBe(2);
+  await page.clock.fastForward(35_000);
+  expect(requests).toBe(2);
+});
+
+test('temporary session-check failure preserves tokens and allows retry', async ({
+  page,
+}) => {
+  await authenticate(page);
+  await page.addInitScript(
+    (token) => localStorage.setItem('refreshToken', token),
+    session.refreshToken
+  );
+  let checks = 0;
+  await page.route('**/auth/user', async (route) => {
+    checks++;
+    if (checks === 1) {
+      await route.abort('failed');
+      return;
+    }
+    await route.fulfill({ json: { success: true, user } });
+  });
+  await page.goto('/profile');
+  await expect(page.getByRole('alert')).toContainText(
+    'Не удалось проверить авторизацию'
+  );
+  expect(await page.evaluate(() => localStorage.getItem('refreshToken'))).toBe(
+    session.refreshToken
+  );
+  expect(
+    (await page.context().cookies()).some(({ name }) => name === 'accessToken')
+  ).toBe(true);
+  await page.getByRole('button', { name: 'Повторить проверку' }).click();
+  await expect(page.locator('input[name="name"]')).toHaveValue(user.name);
+  await expect(page).toHaveURL('/profile');
+});
+
+test('password recovery retries failures, blocks duplicate requests and returns after resetting', async ({
+  page,
+}) => {
+  let recoveries = 0;
+  await page.route(/\/api\/password-reset$/, async (route) => {
+    recoveries++;
+    await route.fulfill(
+      recoveries === 1
+        ? { status: 500, json: { success: false, message: 'Попробуйте позже' } }
+        : { json: { success: true } }
+    );
+  });
+  let releaseReset!: () => void;
+  const reset = new Promise<void>((resolve) => {
+    releaseReset = resolve;
+  });
+  let resets = 0;
+  await page.route(/\/api\/password-reset\/reset$/, async (route) => {
+    resets++;
+    expect(route.request().postDataJSON()).toEqual({
+      password: '123456',
+      token: 'code',
+    });
+    await reset;
+    await route.fulfill({ json: { success: true } });
+  });
+  await page.goto('/forgot-password');
+  await page.locator('input[name="email"]').fill(user.email);
+  await page.getByRole('button', { name: 'Восстановить', exact: true }).click();
+  await expect(page.getByText('Попробуйте позже', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Восстановить', exact: true }).click();
+  await expect(page).toHaveURL('/reset-password');
+  await page.locator('input[name="password"]').fill('123456');
+  await page.locator('input[name="token"]').fill('code');
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'Сохранить', exact: true })
+  ).toBeDisabled();
+  await page.locator('form').dispatchEvent('submit');
+  expect(resets).toBe(1);
+  releaseReset();
+  await expect(page).toHaveURL('/login');
+  expect(await page.evaluate(() => localStorage.getItem('resetPassword'))).toBeNull();
+});
