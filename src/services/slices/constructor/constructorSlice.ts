@@ -1,18 +1,11 @@
-import { orderBurgerApi } from '@/utils/burger-api';
-import {
-  createAsyncThunk,
-  createSlice,
-  nanoid,
-  type PayloadAction,
-} from '@reduxjs/toolkit';
+import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
+
+import { submitOrder } from '../orderCreation/orderCreationSlice';
 
 import type {
-  FetchStatus,
   TConstructorIngredient,
   TConstructorState,
   TIngredient,
-  TOrder,
-  TRequestError,
 } from '@/utils/types';
 
 type MoveIngredientPayload = {
@@ -20,26 +13,10 @@ type MoveIngredientPayload = {
   toIndex: number;
 };
 
-type TConstructorSliceState = TConstructorState & {
-  status: FetchStatus;
-  error: TRequestError;
-  order: TOrder | null;
-};
-
-const initialState: TConstructorSliceState = {
-  status: 'idle',
-  error: null,
+const initialState: TConstructorState = {
   bun: null,
   ingredients: [],
-  order: null,
 };
-
-export const submitOrder = createAsyncThunk<TOrder, string[]>(
-  'burgerConstructor/submitOrder',
-  async (ingredientsId) => {
-    return (await orderBurgerApi(ingredientsId)).order;
-  }
-);
 
 export const constructorSlice = createSlice({
   name: 'burgerConstructor',
@@ -67,11 +44,6 @@ export const constructorSlice = createSlice({
       state.bun = null;
       state.ingredients = [];
     },
-    resetOrder(state) {
-      state.order = null;
-      state.status = 'idle';
-      state.error = null;
-    },
     moveIngredient(state, action: PayloadAction<MoveIngredientPayload>) {
       const { fromIndex, toIndex } = action.payload;
       const { ingredients } = state;
@@ -89,29 +61,13 @@ export const constructorSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(submitOrder.pending, (state) => {
-      state.status = 'pending';
-      state.error = null;
-    });
-    builder.addCase(submitOrder.fulfilled, (state, action) => {
-      state.status = 'succeeded';
-      state.order = action.payload;
+    builder.addCase(submitOrder.fulfilled, (state) => {
       state.ingredients = [];
       state.bun = null;
-      state.error = null;
-    });
-    builder.addCase(submitOrder.rejected, (state, action) => {
-      state.status = 'rejected';
-      state.error = action.error;
     });
   },
 });
 
-export const {
-  addIngredient,
-  removeIngredient,
-  moveIngredient,
-  clearConstructor,
-  resetOrder,
-} = constructorSlice.actions;
+export const { addIngredient, removeIngredient, moveIngredient, clearConstructor } =
+  constructorSlice.actions;
 export const constructorReducer = constructorSlice.reducer;

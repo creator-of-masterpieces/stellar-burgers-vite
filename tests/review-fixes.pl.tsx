@@ -421,6 +421,8 @@ test('constructor stays highlighted on ingredient modal and direct detail page; 
     )
   ).toBe(true);
   await page.mouse.click(point.x, point.y);
+  await expect(card.locator('.counter__num')).toHaveText('2');
+  await page.getByTestId('modal-overlay').click({ position: { x: 5, y: 5 } });
   await expect(page).toHaveURL('/');
   await expect(page.locator('#modals')).toBeEmpty();
   await expect(page.locator('#root')).not.toHaveAttribute('inert', '');
@@ -447,20 +449,15 @@ test('registration preserves requested history URL including search and hash', a
   await expect(page.getByText('У вас пока нет заказов.', { exact: true })).toBeVisible();
 });
 
-test('history polls without hiding cards, updates an open cached order and stops on leaving', async ({
+test('history loads once per opening and reuses the cached order in its modal', async ({
   page,
 }) => {
   await authenticate(page);
   await page.clock.install();
   let requests = 0;
   let detailRequests = 0;
-  let releaseUpdate!: () => void;
-  const update = new Promise<void>((resolve) => {
-    releaseUpdate = resolve;
-  });
   await page.route(/\/api\/orders$/, async (route) => {
     requests++;
-    if (requests > 1) await update;
     await route.fulfill({
       json: {
         success: true,
@@ -478,20 +475,25 @@ test('history polls without hiding cards, updates an open cached order and stops
   await card.click();
   await expect(page.locator('#modals')).toContainText('Готовится');
   expect(detailRequests).toBe(0);
-  await page.clock.fastForward(10_100);
-  await expect.poll(() => requests).toBe(2);
+  await page.clock.fastForward(35_000);
+  expect(requests).toBe(1);
   await expect(card).toHaveCount(1);
   await expect(page.getByRole('status')).toHaveCount(0);
-  releaseUpdate();
-  await expect(page.locator('#modals')).toContainText('Выполнен');
+  await expect(page.locator('#modals')).toContainText('Готовится');
   await page.keyboard.press('Escape');
-  await expect(card).toContainText('Выполнен');
+  await expect(card).toContainText('Готовится');
   await page.getByRole('link', { name: 'Конструктор', exact: true }).click();
   await expect(page).toHaveURL('/');
   await expect(page.getByTestId('constructor')).toBeVisible();
   const requestsAfterLeaving = requests;
   await page.clock.fastForward(30_000);
   expect(requests).toBe(requestsAfterLeaving);
+  await page.getByRole('link', { name: user.name, exact: true }).click();
+  await page.getByRole('link', { name: 'История заказов', exact: true }).click();
+  await expect(card).toContainText('Выполнен');
+  expect(requests).toBe(2);
+  await page.clock.fastForward(35_000);
+  expect(requests).toBe(2);
 });
 
 test('temporary session-check failure preserves tokens and allows retry', async ({

@@ -1,11 +1,16 @@
 import {
   selectConstructorItems,
-  selectIsLoading,
   selectOrder,
+} from '@/services/slices/constructor/constructorSelectors';
+import {
+  selectIsLoading,
   selectOrderError,
   selectOrderModalData,
-} from '@/services/slices/constructor/constructorSelectors';
-import { resetOrder, submitOrder } from '@/services/slices/constructor/constructorSlice';
+} from '@/services/slices/orderCreation/orderCreationSelectors';
+import {
+  resetOrder,
+  submitOrder,
+} from '@/services/slices/orderCreation/orderCreationSlice';
 import { selectIsAuthChecked, selectUser } from '@/services/slices/user/userSelectors';
 import { useDispatch, useSelector } from '@/services/store';
 import { BurgerConstructorUI } from '@ui';

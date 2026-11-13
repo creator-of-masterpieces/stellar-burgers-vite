@@ -15,10 +15,10 @@ export const ProfileUI = ({
   handleInputChange,
 }: ProfileUIProps): React.JSX.Element => (
   <main className={styles.container}>
-    <div className={styles.menu}>
+    <div className={`mt-30 mr-15 ${styles.menu}`}>
       <ProfileMenu />
     </div>
-    <form className={styles.form} onSubmit={handleSubmit}>
+    <form className={`mt-30 ${styles.form}`} onSubmit={handleSubmit}>
       <>
         <div className="pb-6">
           <Input

@@ -2,8 +2,8 @@ import { configureStore, createListenerMiddleware, isAnyOf } from '@reduxjs/tool
 import { useDispatch as dispatchHook, useSelector as selectorHook } from 'react-redux';
 
 import { rootReducer } from './rootReducer';
-import { submitOrder } from './slices/constructor/constructorSlice';
 import { fetchFeed } from './slices/feed/feedSlice';
+import { submitOrder } from './slices/orderCreation/orderCreationSlice';
 
 export type RootState = ReturnType<typeof rootReducer>;
 

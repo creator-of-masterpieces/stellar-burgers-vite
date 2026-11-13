@@ -9,10 +9,14 @@ import {
   constructorReducer,
   moveIngredient,
   removeIngredient,
-  resetOrder,
-  submitOrder,
 } from './slices/constructor/constructorSlice';
 import { fetchIngredients } from './slices/ingredients/ingredientsSlice';
+import {
+  selectIsLoading,
+  selectOrderError,
+  selectOrderModalData,
+} from './slices/orderCreation/orderCreationSelectors';
+import { resetOrder, submitOrder } from './slices/orderCreation/orderCreationSlice';
 import {
   fetchOrderData,
   orderDetailsReducer,
@@ -50,23 +54,49 @@ const order: TOrder = {
 };
 
 test('successful order clears the burger; closing its modal preserves newly added ingredients', () => {
-  let state = constructorReducer(undefined, addIngredient(bun));
-  state = constructorReducer(state, addIngredient(filling));
-  state = constructorReducer(
+  let state = rootReducer(undefined, addIngredient(bun));
+  state = rootReducer(state, addIngredient(filling));
+  state = rootReducer(
     state,
     submitOrder.fulfilled(order, 'request', ['bun', 'filling', 'bun'])
   );
-  expect(state.bun).toBeNull();
-  expect(state.ingredients).toEqual([]);
-  expect(state.order).toEqual(order);
-  state = constructorReducer(state, addIngredient(bun));
-  state = constructorReducer(state, addIngredient(filling));
-  const nextBurger = { bun: state.bun, ingredients: state.ingredients };
-  state = constructorReducer(state, resetOrder());
-  expect(state.order).toBeNull();
-  expect(state.status).toBe('idle');
-  expect(state.error).toBeNull();
-  expect({ bun: state.bun, ingredients: state.ingredients }).toEqual(nextBurger);
+  expect(state.burgerConstructor).toEqual({ bun: null, ingredients: [] });
+  expect(state.orderCreation).toEqual({
+    order,
+    status: 'succeeded',
+    error: null,
+  });
+  expect(selectOrderModalData(state)).toEqual(order);
+  state = rootReducer(state, addIngredient(bun));
+  state = rootReducer(state, addIngredient(filling));
+  const nextBurger = state.burgerConstructor;
+  state = rootReducer(state, resetOrder());
+  expect(state.orderCreation).toEqual({ order: null, status: 'idle', error: null });
+  expect(state.burgerConstructor).toBe(nextBurger);
+});
+
+test('pending and failed order preserve the burger; retry clears the order error', () => {
+  let state = rootReducer(undefined, addIngredient(bun));
+  state = rootReducer(state, addIngredient(filling));
+  const burger = state.burgerConstructor;
+  const ingredientIds = ['bun', 'filling', 'bun'];
+  state = rootReducer(state, submitOrder.pending('request', ingredientIds));
+  expect(selectIsLoading(state)).toBe(true);
+  expect(selectOrderError(state)).toBeNull();
+  expect(state.burgerConstructor).toBe(burger);
+  state = rootReducer(
+    state,
+    submitOrder.rejected(new Error('Server unavailable'), 'request', ingredientIds)
+  );
+  expect(state.orderCreation.status).toBe('rejected');
+  expect(selectIsLoading(state)).toBe(false);
+  expect(selectOrderError(state)).toMatchObject({ message: 'Server unavailable' });
+  expect(selectOrderModalData(state)).toBeNull();
+  expect(state.burgerConstructor).toBe(burger);
+  state = rootReducer(state, submitOrder.pending('retry', ingredientIds));
+  expect(selectIsLoading(state)).toBe(true);
+  expect(selectOrderError(state)).toBeNull();
+  expect(state.burgerConstructor).toBe(burger);
 });
 
 test('catalog skips requests while loading and after success', async () => {
